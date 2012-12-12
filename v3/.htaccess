@@ -1,0 +1,10 @@
+RewriteEngine on
+
+RewriteRule ^api/?$ api.php [L]
+RewriteRule ^api/([^/]+)/?$ api.php?ns=$1 [L]
+RewriteRule ^api/([^/]+)/([^/]+)/?$ api.php?ns=$1&cl=$2 [QSA]
+RewriteRule ^api/([^/]+)/([^/]+)/([^/]+)/?$ api.php?ns=$1&cl=$2&mh=$3 [QSA]
+
+RewriteRule ^$ ui.php?cl=All&mh=home [QSA]
+RewriteRule ^(Content|SEO|PPC|Web_development|Users)/?$ ui.php?cl=$1 [QSA]
+RewriteRule ^(Content|SEO|PPC|Web_development|Users)/([^/]+)/?$ ui.php?cl=$1&mh=$2 [QSA]

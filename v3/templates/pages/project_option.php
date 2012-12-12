@@ -1,0 +1,1 @@
+<option asana_project_id='<?= $project->asana_project_id; ?>' <?= ($project->project_id == $target ? "selected='selected'" : "");?> value='<?= $project->project_id ?>'><?= $project->project; ?></option>
