@@ -5,7 +5,7 @@ if ($_SERVER['DOCUMENT_ROOT'] == "C:/xampp/htdocs"){
 	define('USER','cameron');
 	define('PW','B3@utifulday');
 	define('DB','oozle');
-	define('HTTP_ROOT','http://localhost/v3');
+	define('HTTP_ROOT','http://localhost/article-tool/v3');
 } else {
 	define('SERVER','localhost');
 	define('USER','oozlemed_cam');
