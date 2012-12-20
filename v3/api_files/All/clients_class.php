@@ -4,22 +4,6 @@ namespace API\All {
         public function __construct($parameters){
             parent::__construct($parameters);
         }
-        public function vampire(){
-            $db = $this->get_db();
-            $r = new \Requester();
-            $d = $r->get("http://oozlemedia.net/seo/v2/api/clients/dump");
-            $info = json_decode($d['contents']);
-            $query = "INSERT IGNORE INTO client_budgets VALUES ";
-            foreach ($info->data as $row){
-                $query .= "(";
-                foreach ($row as $item){
-                    $query .= "'".$db->esc($item)."',";
-                }
-                $query = substr_replace($query,"),",-1);
-            }
-            $db->query(substr_replace($query,"",-1,1));
-        }
-        
         
         public function save(){
             $reqs = new \Required_Parameters(array(),array("client_budget_id"=>\Types::Int,"seo_percentage"=>\Types::Float));
