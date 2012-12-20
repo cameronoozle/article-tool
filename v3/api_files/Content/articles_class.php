@@ -5,81 +5,74 @@ namespace API\Content {
         private $join_fields;
         private $workspace_id;
         private $dupkeys;
-        
-        public function vampire_tasks(){
-            $r = new \Requester();
+        //Reconcile_tasks marks all tasks that are complete in Asana as complete in the tool.
+        public function reconcile_tasks() {
+            set_time_limit(120);
+            //Set up our services - the database connection and the Asana interface.
             $db = $this->get_db();
-            $i = $r->get("http://oozlemedia.net/seo/v2/api/articles/dump_tasks");
-            $info = (json_decode($i['contents']));
-            print_r($info);
-            $query = "INSERT IGNORE INTO tasks (asana_task_id,asana_team_member_id) VALUES ";
-            $arr = array();
-            foreach ($info->data as $row){
-                if (!empty($row->writing_team)){
-                    $d = $db->query("SELECT asana_team_member_id FROM team_members WHERE team_member = '".$db->esc($row->writing_team)."'");
-                    print_r($d);
-                    if (count($d['rows']) > 0)
-                        array_push($arr,"(".$row->task_id.",".$d['rows'][0]['asana_team_member_id'].")");
-                }
-            }
-            $db->query(substr_replace($query,"",-1,1));
-        }
-        
-        public function vampire(){
-            $r = new \Requester();
-            $db = $this->get_db();
-            $i = $r->get("http://oozlemedia.net/seo/v2/api/articles/dump");
-            $info = (json_decode($i['contents']));
-//            print_r($info);
-            $query = "INSERT INTO articles (
-            article_id,client_id,team_member_id,content_network_id,
-            keyword_id,project_id,task_id,target_url,post_url,outsource,month,
-            word_count,cost,article_status_id,outsource_order_placed,date_last_updated,notes
-            ) ";
-            $subqueries = array();
-            foreach ($info->data as $row){
-                $subquery = "SELECT ".
-                "'".$db->esc($row->article_id)."',".
-                "'".$db->esc($row->client_id)."',".
-                "(SELECT team_member_id FROM team_members WHERE team_member = '".$db->esc($row->writing_team_id)."'),".
-                "(SELECT content_network_id FROM content_networks WHERE content_network = '".$db->esc($row->post_location)."'),".
-                "'".$db->esc($row->keyword_id)."',".
-                "'".$db->esc($row->project_id)."',".
-                "(SELECT task_id FROM tasks WHERE asana_task_id = '".$db->esc($row->task_id)."'),".
-                "'".$db->esc($row->target_url)."',".
-                "'".$db->esc($row->post_url)."',".
-                "'0',".
-                "'".$db->esc($row->month)."',".
-                "'".$db->esc($row->word_count)."',".
-                "'".$db->esc($row->cost)."',";
-                if (!empty($row->posted))
-                    $subquery .= "4,";
-                else if (!empty($row->received_or_completed))
-                    $subquery .= "6,";
-                else
-                    $subquery .= "5,";
-                $subquery .= "0,".
-                "'".$db->esc($row->date_last_updated)."',".
-                "'".$db->esc($row->notes)."' ".
-                "FROM tasks";
-                array_push($subqueries,$subquery);
-            }
-            $query = $query.implode(" UNION ",$subqueries);
-//            echo $query."\n\n";
+            $a = new \Asana_API(\API\All\Users::asana_api_key());
+
+            //Get all of the tasks not currently marked as written.
+            $query = "SELECT article_id,asana_task_id,task_id FROM articles INNER JOIN tasks USING (task_id) WHERE written = 0 AND asana_task_id IS NOT NULL AND asana_task_id != 0";
             $d = $db->query($query);
-//            print_r($d);
+
+            //Prepare to import all the post URLs from the notes sections.
+            $query3 = "UPDATE articles SET post_url = CASE (task_id) ";
+            //Go through each row of unwritten articles and prepare to set them as written if marked as complete in Asana.
+
+            $wheres = array();
+            foreach ($d['rows'] as $row){
+                //Get the Asana task record for each article.
+                $r = $a->as_get("/tasks/".$row['asana_task_id']);
+                $q = json_decode($r['contents']);
+
+                //If the Asana record lists the task as completed, prepare to mark it as written in the database.
+                if ($q->data->completed == 1)
+                    array_push($wheres,"task_id = ".$row['task_id']);
+
+                //Break the notes section for the task into lines.
+                $split = preg_split("/\n/",$q->data->notes);
+                foreach ($split as $item){
+
+                    //If you find a line that lists a post URL, add it to the third query to add the post URL to the tool database.
+                    if (preg_match_all("/^post_url:\s(.+)$/i",trim($item),$array)){
+                        if ((count($array) > 1)&&(count($array[1]) > 0))
+                            $query3 .= "WHEN ".$row['task_id']." THEN '".$db->esc($array[1][0])."' ";
+                    }
+                }
+
+                //So as to not overload the Asana API:
+                usleep(250000);
+            }
+            if (count($wheres) > 0){
+
+                //If we have more than one currently unwritten article to mark as written, update the database to mark all of those articles as written.
+                $query2 = "UPDATE articles SET written=1 WHERE written=0 AND (".implode(" OR ",$wheres).")";
+                $completequery = "UPDATE articles SET article_status_id = 6 WHERE article_status_id = 5 AND (".implode(" OR ",$wheres).")";
+                echo $query2."\n\n";
+                $d = $db->query($completequery);
+                $d = $db->query($query2);
+            }
+            if ($query3 !== "UPDATE articles SET post_url = CASE (task_id) "){
+                $query3 = $query3." END WHERE post_url IS NULL OR post_url = ''";
+                $d = $db->query($query3);
+            }
+            return $this->success(array("Tasks successfully reconciled!"));
         }
         
         public function __construct($parameters){
             $this->workspace_id = "626921128718";
             parent::__construct($parameters);
         }
+        
+        //Copies all articles from one month to another.
         public function copy(){
             $reqs = new \Required_Parameters(array(),array("from"=>\Types::Datetime,"to"=>\Types::Datetime,"client_id"=>\Types::Int));
             return $this->validate_output($reqs,false,new \Permission(2,"Content"),array($this,"copy_callback"));
         }
         public function copy_callback(){
             $db = $this->get_db();
+            //Pretty straightforward transfer of data from one month to another.
             $query = "INSERT INTO articles ".
             "(client_id,content_network_id,keyword_id,project_id,target_url,outsource,month,word_count,cost) ".
             "SELECT '".$db->esc($this->parameters['client_id'])."',content_network_id,keyword_id,project_id,".
@@ -88,12 +81,16 @@ namespace API\Content {
             $db->query($query);
             return $this->success(array("Month successfully copied."));
         }
-        
+
+        //If an admin doesn't want to write down all of the keywords for a given client in a given month, it's easier to say,
+        //"Import all of the keywords that this client has ever used into this month." That's what this function does.
         public function import_keywords(){
             $reqs = new \Required_Parameters(array(),array("client_id"=>\Types::Int,"month"=>\Types::Datetime));
             return $this->validate_output($reqs,false,new \Permission(2,"Content"),array($this,"import_keywords_callback"));
         }
         
+        
+        //Just uses your standard insert-select MySQL syntax, similar to the "copy" function.
         public function import_keywords_callback(){
             $db = $this->get_db();
             $query = "INSERT INTO articles (client_id,keyword_id,month) ".
@@ -103,6 +100,7 @@ namespace API\Content {
             return $this->success(array("Keywords successfully imported."));
         }
         
+        //Get a list of all possible content networks. This is primarily used in select drop-downs in the tool.
         public function search_content_networks(){
             return $this->validate_output(new \Required_Parameters(),false,new \Permission(1,"Content"),array($this,"search_content_networks_callback"));
         }
@@ -112,6 +110,7 @@ namespace API\Content {
             return $this->success($d['rows']);
         }
         
+        //Get a list of all possible article statuses. Primarily used in select drop-downs in the tool.
         public function search_statuses(){
             $reqs = new \Required_Parameters();
             return $this->validate_output($reqs,false,new \Permission(1,"Content"),array($this,"search_statuses_callback"));
@@ -122,23 +121,29 @@ namespace API\Content {
             return $this->success($d['rows']);
         }
         
+        //Accepts a multidimensional request, meaning it's capable of saving more than one article at a time.
+        //If an article id is supplied for a given article, it simply updates that article. If not, it creates a new one.
         public function save(){
             $reqs = new \Required_Parameters(array("month"=>\Types::Datetime,"article_id"=>\Types::Int));
             return $this->validate_output($reqs,true,new \Permission(1,"Content"),array($this,"save_callback"));
         }
         public function save_callback(){
             $db = $this->get_db();
+            // ----- Set up the fields to insert --------
             //Fields to insert that you can put directly into the table.
             $this->insert_fields = array("outsource"=>\Types::Bool,
                 "month"=>\Types::Datetime,"word_count"=>\Types::Int,
                 "cost"=>\Types::Float,"outsource_order_placed"=>\Types::Bool,
-                "notes"=>\Types::String,"post_url"=>\Types::String,"target_url"=>\Types::String);
+                "written"=>\Types::Bool,"notes"=>\Types::String,"post_url"=>\Types::String,"target_url"=>\Types::String);
             //Fields that refer to other tables based on ID.
             $this->join_fields = array("client","team_member","content_network","project","task","article_status");
             $inserts = array();
             //You only want to update a field if the user submitted a parameter for that field, so the dupkeys array keeps track
             //of which parameters have been submitted so it only updates those fields and we don't get any fields inappropriately set to null.
+            //We'll be modifying the dupkeys array in our callback.
             $this->dupkeys = array();
+            
+            // --------- Build an array of subqueries ------------
             //Use our callback so that we have all the insert queries we need, regardless of the dimensionality of the parameters.
             if (\Array_Manager::is_multidimensional($this->parameters)){
                 foreach ($this->parameters as $parameters){
@@ -149,6 +154,7 @@ namespace API\Content {
             }
             //Even if we don't change any of the fields, we want the date_last_updated field to update so that we can get all of the inserted fields.
             array_push($this->dupkeys,"date_last_updated = NOW()");
+            //----- Set up the rest of the query ----------
             $query1 = "INSERT INTO articles (article_id,".
                 implode(",",array_map(array($this,"add_id"),$this->join_fields)).",".
                 \Handy::implode_keys(",",$this->insert_fields).",keyword_id) ".
@@ -156,7 +162,7 @@ namespace API\Content {
             $d = $db->query($query1);
             //Get all of the fields inserted into the table.
             $d = $db->query("SELECT article_id FROM articles WHERE date_last_updated = (SELECT MAX(date_last_updated) FROM articles) LIMIT 1");
-            return $this->success(array("rows"=>$d['rows'],"query"=>$query1));
+            return $this->success(array("rows"=>$d['rows'],"query"=>$query1,"params"=>$this->parameters));
         }
         private function subquery($parameters){
                 //The arr is just an array of values to insert into the table straight up.
@@ -279,11 +285,12 @@ namespace API\Content {
                 //Writers cannot see tasks that are assigned to other people.
                 array_push($wheres,"(tasks.asana_team_member_id = '".\API\All\Users::asana_team_member_id()."' OR task_id IS NULL)");
             }
+            array_push($wheres,"service_id = 2");
             $joins = array("client","content_network","keyword","project","task");
             $query = "SELECT *,clients.client,articles.client_id,articles.notes,keywords.keyword FROM articles ";
             $orders = array("article_id","project","client","keyword","target_url","content_network","post_url","word_count","article_status_id","notes","cost");
             foreach ($joins as $join) $query .= "LEFT JOIN ".$join."s USING (".$join."_id) ";
-            $query .= "LEFT JOIN team_members USING (asana_team_member_id) ";
+            $query .= "LEFT JOIN team_members USING (asana_team_member_id) LEFT JOIN client_service_pairings USING (client_id)";
             $query .= "WHERE ".implode(" AND ",$wheres)." ORDER BY ".
             ((isset($this->parameters['order_by']))&&(in_array($this->parameters['order_by'],$orders)) ?
                 $this->parameters['order_by'] :
@@ -307,32 +314,45 @@ namespace API\Content {
         }
         public function assign_callback(){
             $db = $this->get_db();
+            //Get all of the information about the article being assigned.
             $d = $db->query("SELECT client,word_count,project,keyword,content_network,notes,target_url,post_url FROM articles ".
                             "LEFT JOIN clients USING (client_id) ".
                             "LEFT JOIN projects USING (project_id) ".
                             "LEFT JOIN keywords USING (keyword_id) ".
                             "LEFT JOIN content_networks USING (content_network_id) ".
                             "WHERE article_id = ".$db->esc($this->parameters['article_id'])." LIMIT 1");
+            //If the article exists, assign it. Otherwise, return an error.
             if (count($d['rows']) > 0){
-                $notes = "";
+                //Set up the notes for the task.
+                $notes = "Notes:\n";
                 foreach ($d['rows'][0] as $name=>$val){
                     $notes .= $name.": ".$val."\n";
                 }
+                //Task Parameters: all of the information Asana needs to create task.
                 $tparams = array(
                     "asana_workspace_id"=>$this->workspace_id,
                     "notes"=>$notes,
                     "assignee"=>\API\All\Users::asana_team_member_id(),
                     "name"=>$d['rows'][0]['client']." Content");
-                foreach (array("client","article_id","keyword","content_network","target_url","word_count","notes") as $val)
+                //If the user submitted information that we weren't able to find in the database, add that to the notes section as well.
+                foreach (array("client","article_id","keyword","content_network","target_url","word_count","notes","post_url") as $val)
                     if (!empty($this->parameters[$val]))
                         $tparams["notes"] .= $val.": ".$this->parameters[$val]."\n";
+                    else if ($val == "post_url")
+                        $tparams["notes"] .= $val.": \n";
+                //For debugging purposes: dump the task parameters into the notes section for our perusal.
+                $tparams["notes"] .= print_r($tparams,true);
+                //Assign the task.
                 $tasks = new \API\All\Tasks($tparams);
                 $data = $tasks->create();
+                //If the user gave us a project ID for the article being assigned, add that project to the task.
                 if (!empty($this->parameters['asana_project_id'])){
                     $d = $tasks->add_project($data->data->asana_task_id,$this->parameters['asana_project_id']);
                 }
+                //If the task assignment was a success, add the new task's ID and notes to the articles table.
                 if ($data->status == 'success')
                     $db->query("UPDATE articles SET task_id = ".$db->esc($data->data->task_id).", notes='".$db->esc($notes)."' WHERE article_id = ".$db->esc($this->parameters['article_id']));
+                //We're just going to return the task assignment API object that we retrieved in line 332, with a few modifications.
                 $data->params = $this->parameters;
                 return $data;
             } else {
@@ -351,13 +371,14 @@ namespace API\Content {
                 if ((isset($opts[$name]))&&\Types::matches_type($value,$opts[$name]))
                     array_push($wheres,$name." = '".$db->esc($value)."'");
             }
+            array_push($wheres,"service_id=2");
             if ($this->parameters['admin'] == 0)
                 array_push($wheres,"project_id != 0");
             $whereclause = implode(" AND ",$wheres);
             $query1 =
             "SELECT LOWER(REPLACE(article_status,' ','_')) article_status, COUNT(article_id) num_articles ".
             "FROM article_statuses ".
-            "LEFT JOIN (SELECT * FROM articles WHERE ".$whereclause.") articles USING (article_status_id) GROUP BY article_status_id";
+            "LEFT JOIN (SELECT * FROM articles LEFT JOIN clients USING (client_id) LEFT JOIN client_service_pairings USING (client_id) WHERE ".$whereclause.") articles USING (article_status_id) GROUP BY article_status_id";
             $d1 = $db->query($query1);
             $output = array();
             $output['total_articles'] = 0;
@@ -365,9 +386,15 @@ namespace API\Content {
                 $output[$d1['rows'][$i]['article_status']] = $d1['rows'][$i]['num_articles'];
                 $output['total_articles'] += $d1['rows'][$i]['num_articles'];
             }
-            $query2 = "SELECT SUM(cost) total_cost FROM articles WHERE ".$whereclause;
+            $query2 = "SELECT SUM(cost) total_cost FROM articles LEFT JOIN clients USING (client_id) LEFT JOIN client_service_pairings USING (client_id) WHERE ".$whereclause;
             $d2 = $db->query($query2);
+            $query3 = "SELECT COUNT(article_id) written FROM articles LEFT JOIN clients USING (client_id) LEFT JOIN client_service_pairings USING (client_id) WHERE ".$whereclause." AND written=1";
+            $d3 = $db->query($query3);
+            $output['raw'] = $d1['rows'];
             $output['total_cost'] = number_format($d2['rows'][0]['total_cost'],2,".","");
+            $output['written'] = $d3['rows'][0]['written'];
+            $output['queries'] = array($query1,$query2,$query3);
+            $output['params'] = $this->parameters;
             return $this->success($output);
         }
         public function assign_admin(){
@@ -390,9 +417,11 @@ namespace API\Content {
                         "notes"=>"",
                         "assignee"=>$d['rows'][0]['asana_team_member_id'],
                         "name"=>$z['rows'][0]['client']." Content");
-                    foreach (array("client","article_id","keyword","content_network","target_url","word_count","notes") as $val)
+                    foreach (array("client","article_id","keyword","content_network","target_url","word_count","notes","post_url") as $val)
                         if (!empty($z['rows'][0][$val]))
                             $tparams["notes"] .= $val.": ".$z['rows'][0][$val]."\n";
+                        else if ($val == "post_url")
+                            $tparams["notes"] .= $val.": \n";
                     $tasks = new \API\All\Tasks($tparams);
                     $data = $tasks->create();
                     if (!empty($this->parameters['asana_project_id'])){
@@ -429,7 +458,7 @@ namespace API\Content {
                 $tasks = new \API\All\Tasks(array("asana_task_id"=>$this->parameters['asana_task_id'],"assignee"=>"null"));
                 $data = $tasks->update();
                 if ($data->status == 'success'){
-                    $d = $db->query("UPDATE articles SET task_id = NULL WHERE article_id = ".$db->esc($this->parameters['article_id']));
+                    $tasks->delete();
                     return $this->success(array("Article successfully unassigned."));
                 } else {
                     return $data;

@@ -89,6 +89,15 @@
 			    </div>
 			    <span class='th_heading'>Word Count</span>
 			</th>
+			<th class='written'>
+			    <div>
+				<span class="th_controls">
+				    <span class="sortMe" rel='written'></span>
+				    <span class="hideColumn"></span>
+				</span>
+			    </div>
+			    <span class='th_heading'>Written</span>
+			</th>
 			<th class='status'>
 			    <div>
 				<span class="th_controls">

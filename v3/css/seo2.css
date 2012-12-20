@@ -170,7 +170,7 @@ pre {
 	width:100%;
 	text-align:right;
 }
-#articles_snippet, #articles_admin_snippet, #clients_table {
+#articles_snippet, #articles_admin_snippet, #clients_table, #keywords_snippet {
 	background-color:#eeeeee;
 	border-collapse:collapse;
 	font-size:11px;
@@ -209,8 +209,11 @@ pre {
 #articles_snippet .notes {
 	width:110px;
 }
-#articles_snippet .assign {
+#articles_snippet .assign_td {
 	width:110px;
+}
+#articles_snippet .written {
+	width:30px;
 }
 #articles_admin_snippet th, #articles_snippet th {
     -moz-user-select: none;
@@ -218,7 +221,10 @@ pre {
     -webkit-user-drag: none;
 }
 #articles_admin_snippet {
-	width:1200px;
+	width:1215px;
+}
+#articles_admin_snippet .written {
+	width:15px;
 }
 #articles_admin_snippet .article_id {
 	width:10px;
@@ -269,7 +275,7 @@ pre {
 	vertical-align: middle;
 	text-align: center;
 }
-.clients td, .articles td,th {
+.clients td, .articles td, .clients th, .articles th {
 	border: 1px #dddddd solid;
 	white-space:nowrap;
 	overflow:hidden;
@@ -491,3 +497,28 @@ label {
 	text-align:center;
 }
 /* End Auth Screen */
+/* Start Permissions */
+.permissions_box {
+	background-color: #eeeeee;
+	border-radius: 5px;
+	text-align: center;
+	display: inline-block;
+	width: 100%;
+}
+.permissions_box > table {
+	margin:auto;
+}
+.permissions_box > table th {
+	text-align: left;
+	vertical-align: top;
+}
+.permissions_box th, .permissions_box td {
+	padding:5px;
+}
+/* End Permissions */
+
+
+
+
+
+

@@ -11,9 +11,11 @@ var articles = {
         this.snippets = [];
         this.num_articles;
         this.num_rows;
+        this.i = 1;
         $("th").each(function(){
             this.onselectstart = function(){return false;};
         });
+
         this.loadCallback = function(refresh){
             if ($("#clientSelect").val() !== "")
                 $(".copy_link, #importKeywords").show();
@@ -26,6 +28,7 @@ var articles = {
             _self.model.getSnippet(
                 window.root+"/Content/articles_admin_snippet"+qstr,
                 function(data){
+                    _self.i++;
                     if (refresh)
                         $("#articles_admin_snippet tbody").html("");
                     $("#articles_admin_snippet tbody").append(data);
@@ -34,6 +37,8 @@ var articles = {
                     if (data.length > 0 && $("#articles_admin_snippet tbody tr").length > _self.num_rows && $("#articles_admin_snippet tbody tr").length < _self.num_articles){
                         _self.num_rows = $("#articles_admin_snippet tbody tr").length;
                         _self.timeout = setTimeout(_self.loadSnippets,50);
+                    } else {
+                        window.clearTimeout(_self.timeout);
                     }
                     $("td[name='word_count']").each(function(){_self.calcCost(this);});
                 }
@@ -42,27 +47,25 @@ var articles = {
         
         this.loadSnippets = function(refresh){
             if (refresh){
+                window.clearTimeout(_self.timeout);
                 var dObj = {month:$("#year").val()+"-"+$("#month").val()+"-01 00:00:00",admin:"1"};
                 if ($("#clientSelect").val() !== ""){
                     dObj.client_id = $("#clientSelect").val();
                 }
+                _self.num_rows = 0;
+                _self.snippets = [];
                 _self.model.getData(window.root+"/api/Content/Articles/stats",function(data){
                     $("#outputInfo").html($("#stats_snippet_template").tmpl(data.data));
                     if ((data.status == 'success')&&(data.data.total_articles > 0)){
                         _self.num_articles = data.data.total_articles;
                         _self.loadCallback(refresh);
                     } else {
-                        console.log("Not success, no more than 0 articles",$("#articles_admin_snippet_template"),$("#articles_admin_snippet tbody"));
                         obj = $("#articles_admin_snippet_template").tmpl();
-                        console.log(obj);
                         $("#articles_admin_snippet tbody").html(obj);
                         if ($("#clientSelect").val() !== "")
                             $(obj).find("select[name='client_id']").val($("#clientSelect").val());
                     }
                 },dObj);
-                _self.num_rows = 0;
-                window.clearTimeout(_self.timeout);
-                _self.snippets = [];
             } else {
                 _self.loadCallback(refresh);
             }
@@ -90,7 +93,10 @@ var articles = {
         $(document).on("click","input.delete",function(){
             var el = this;
             $(this).siblings(".ajax_circle").show();
-            _self.model.getData($(this).attr('href'),function(data){$(el).closest("tr").remove();$(el).siblings(".ajax_circle").hide();});
+            if ($(this).closest("tr").find("input[name='article_id']").val() !== "")
+                _self.model.getData($(this).attr('href'),function(data){$(el).closest("tr").remove();$(el).siblings(".ajax_circle").hide();});
+            else
+                $(this).closest("tr").remove();
         });
         $(document).on("keyup","td[name='word_count']",function(){
             _self.calcCost(this,true);
@@ -111,9 +117,9 @@ var articles = {
                     var td = $(el).closest("td");
                     $(".ajax_circle").hide();
                     $(el).closest("td").prepend("Assigned to <span class='assigned_to_name'>"+team_member_name+"</span><br/>"+
-                        "<span href='http://localhost/v3/api/Content/Articles/unassign_admin?article_id="+article_id+"&asana_task_id="+data.data.asana_task_id+"' class='unassign link'>Unassign</span>");
+                        "<span href='"+root+"/api/Content/Articles/unassign_admin?article_id="+article_id+"&asana_task_id="+data.data.asana_task_id+"' class='unassign link'>Unassign</span>");
                     $(el).remove();
-                    $(td).append("<span class='reassign link' href='http://localhost/v3/api/Content/Articles/reassign?article_id="+article_id+"&asana_team_member_id="+data.data.asana_team_member_id+"&asana_task_id="+data.data.asana_task_id+"'>Reassign</span>");
+                    $(td).append("<span class='reassign link' href='"+root+"/api/Content/Articles/reassign?article_id="+article_id+"&asana_team_member_id="+data.data.asana_team_member_id+"&asana_task_id="+data.data.asana_task_id+"'>Reassign</span>");
                     $(td).find(".ajax_circle").hide();
                 },data);
         });
@@ -134,7 +140,7 @@ var articles = {
             $(el).closest("tr").find("td[name='cost']").html(_self.model.calculateCost($(el).html().replace(/(<([^>]+)>)/ig,"")));
             if (cb){
                 var cost = 0;
-                $("td[name='cost']").each(function(){console.log($(this).html(),cost); cost += parseFloat($(this).html().replace(/(<([^>]+)>)/ig,""));});
+                $("td[name='cost']").each(function(){cost += parseFloat($(this).html().replace(/(<([^>]+)>)/ig,""));});
                 $(".total_cost").html(cost.toFixed(2));
             }
         }
@@ -198,13 +204,15 @@ var articles = {
     },
     Model: function(){
         this.getSnippet = function(url,cb){
+            console.log(url);
             $("#ajaxLoading").show();
             $.ajax({
                 url:url,
                 success:function(data){
                     cb(data);
                 },
-                complete:function(){
+                complete:function(a,b){
+                    console.log(a,b);
                     $("#ajaxLoading").hide();
                 }
             });
@@ -216,7 +224,6 @@ var articles = {
                 dataType:'json',
                 url:url,
                 success:function(data){
-                    console.log(data);
                     cb(data);
                 },
                 complete:function(a,b){

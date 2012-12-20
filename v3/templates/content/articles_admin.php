@@ -55,7 +55,7 @@
 			<th class='client'>
 			    <div>
 				<span class="th_controls">
-				    <span class="sortMe" rel='client'></span>
+				    <span class="sortMe" rel='clients.client'></span>
 				    <span class="hideColumn"></span>
 				</span>
 			    </div>
@@ -114,6 +114,15 @@
 				</span>
 			    </div>
 			    <span class='th_heading'>Cost</span>
+			</th>
+			<th class='written'>
+			    <div>
+				<span class="th_controls">
+				    <span class="sortMe" rel='written'></span>
+				    <span class="hideColumn"></span>
+				</span>
+			    </div>
+			    <span class='th_heading'>Written</span>
 			</th>
 			<th class='article_status'>
 			    <div>

@@ -21,6 +21,7 @@ var articles = {
                     if (refresh)
                         $("#articles_snippet tbody").html("");
                     $("#articles_snippet tbody").append(data);
+                    console.log($("tr").length);
                     _self.snippets.push("string");
                     //If the snippet wasn't empty and
                     //we loaded some new rows with the last snippet and
@@ -64,8 +65,14 @@ var articles = {
             $(this).closest("tr").find(".ajax_circle").show();
             var el = this;
             _self.model.getData($(this).attr("href"),function(data){
+                console.log(data);
                 $(".ajax_circle").hide();
-                $(el).closest("td").html("This article is assigned to you. <span article_id='"+$(el).attr("article_id")+"' class='unassign link' href='"+window.root+"/api/Content/Articles/unassign?article_id="+$(el).attr("article_id")+"&asana_task_id="+data.data.asana_task_id+"'>Unassign</span>");
+                var str = "";
+                if (data.status == 'success')
+                    str = "This article is assigned to you. <span article_id='"+$(el).attr("article_id")+"' class='unassign link' href='"+window.root+"/api/Content/Articles/unassign?article_id="+$(el).attr("article_id")+"&asana_task_id="+data.data.asana_task_id+"'>Unassign</span>";
+                else
+                    str = "Something went wrong: "+data.data.join(", ")+" Please try again later.";
+                $(el).closest("td").html(str);
             },jQuery.param({asana_project_id:$(el).closest("tr").find("input[name='asana_project_id']").val()}));
         });
         $(document).on("click",".unassign",function(){
@@ -73,7 +80,12 @@ var articles = {
             var el = this;
             _self.model.getData($(this).attr("href"),function(data){
                 $(".ajax_circle").hide();
-                $(el).closest("td").html("<span article_id='"+$(el).attr("article_id")+"' class='assign link' href='"+window.root+"/api/Content/Articles/assign?article_id="+$(el).attr("article_id")+"'>Assign to me</span>")
+                var str = "";
+                if (data.status == 'success')
+                    str = "<span article_id='"+$(el).attr("article_id")+"' class='assign link' href='"+window.root+"/api/Content/Articles/assign?article_id="+$(el).attr("article_id")+"'>Assign to me</span>";
+                else
+                    str = "Something went wrong: "+data.data.join(", ")+" Please try again later.";
+                $(el).closest("td").html(str);
             });
         });
         $(document).on("click",".sortMe",function(){

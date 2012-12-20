@@ -151,6 +151,25 @@ namespace UI {
             return ob_get_clean();
         }
         
+        protected function permissions_callback($dept_id,$dept_str){
+            $perm = new \Permission(3,$dept_str);
+            if ($perm->has_permission()){
+                $api = new \API\All\Users(array("department_id"=>$dept_id));
+                $pg_model = $api->search_pay_grades();
+                $model = $api->search();
+                $data = (object) array();
+                $data->users = $model->data;
+                $data->pay_grades = $pg_model->data;
+                if ($model->status == 'success')
+                    include('templates/pages/permissions.php');
+                else
+                    include('templates/error.php');
+            } else {
+                $data = array("You do not have permission to access this module.");
+                include('templates/error.php');
+            }
+        }
+        
     }
 }
 ?>

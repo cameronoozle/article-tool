@@ -36,7 +36,6 @@ namespace UI {
         
         protected function assign_text($data){
             ob_start();
-            ?><div style='display:none'><?php print_r($data); ?></div><?php
             if (!empty($data->task_id)){
                 ?>Assigned to <span class='assigned_to_name'><?= $data->team_member; ?></span>.<br/>
                 <span href='<?= HTTP_ROOT; ?>/api/Content/Articles/unassign_admin?article_id=<?= $data->article_id; ?>&asana_task_id=<?= $data->asana_task_id; ?>'
@@ -82,19 +81,7 @@ namespace UI {
             }
         }
         public function permissions(){
-            $perm = new \Permission(3,"Content");
-            if ($perm->has_permission()){
-                $api = new \API\Content\Users(array("department_id"=>4));
-                $model = $api->search();
-                $data = $model->data;
-                if ($model->status == 'success')
-                    include('templates/permissions.php');
-                else
-                    include('templates/error.php');
-            } else {
-                $data = array("You do not have permission to access this module.");
-                include('templates/error.php');
-            }
+            $this->permissions_callback(4,"Content");
         }
     }
 }

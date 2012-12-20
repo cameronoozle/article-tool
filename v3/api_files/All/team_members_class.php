@@ -22,11 +22,11 @@ namespace API\All {
         }
         public function refresh(){
             $reqs = new \Required_Parameters();
-            return $this->validate_output($reqs,false,new \Permission(1,array("Content","SEO","PPC","Web Development")),array($this,"refresh_callback"));
+            return $this->validate_output($reqs,false,null,array($this,"refresh_callback"),false);
         }
         public function refresh_callback(){
             $db = $this->get_db();
-            $as = new \Asana_API(Users::asana_api_key());
+            $as = new \Asana_API("4OiXYyQ.vLCmvy1MZM21boUyDQxUc8Mh");
             $d = $db->query("SELECT department_id,asana_workspace_id FROM departments");
             $inquery = "INSERT INTO team_members (team_member,asana_team_member_id) VALUES ";
             $inarr = array();

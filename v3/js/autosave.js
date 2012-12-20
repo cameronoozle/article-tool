@@ -41,12 +41,14 @@ function Autosave(){
 	
 	//Cruises through each row that contains data and saves its contents.
 	this.save = function(){
+		console.log("saving");
 		self.saveTags();
 		var tosave = $("tr[data='true']");
 		if (tosave.length > 0){
 			$(tosave).attr("data","false");
 			var tosend = $(tosave).serializeToJSON();
 			for (i=0;i<tosend.length;i++){
+				tosend[i].month = $("#year").val()+"-"+$("#month").val()+"-01 00:00:00";
 				if (!tosend[i].client_id)
 					tosend[i].client_id = $("#clientSelect").val();
 				if (($("#outputtable > table").attr("id") == "articles")||($("#outputtable > table").attr("id") == "clients"))
@@ -63,6 +65,7 @@ function Autosave(){
 				data:JSON.stringify(tosend),
 				contentType:'application/json',
 				success:function(data){
+					console.log(data);
 					if (data.status == "success"){
 						var rows = (data.data.rows ? data.data.rows : data.data);
 						for (i=0;i<rows.length;i++){
@@ -76,6 +79,7 @@ function Autosave(){
 					}
 				},
 				complete:function(a,b,c){
+					console.log(a,b);
 					$("#saveOutput").html("Autosave completed.");
 					$("#saveOutput").fadeIn(2000,function(){$("#saveOutput").fadeOut(2000)});
 				}
@@ -118,6 +122,7 @@ function Autosave(){
 		self.toggleAutosave(this);
 	});
 	$(document).on('change click keyup',"input,td[contentEditable='true'][sloppy!='true'],select,textarea",function(){
+		console.log("click!");
 		self.dataTrue(this);
 	});
 	$(document).on('blur',"td[sloppy='true']",function(){

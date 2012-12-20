@@ -10,6 +10,7 @@
     <td class='content_network'><?= $data->content_network; ?></td>
     <td class='post_url' contentEditable='true' name='post_url'><?= $data->post_url; ?></td>
     <td class='word_count'><?= $data->word_count; ?></td>
+    <td class='written'><input type='checkbox' value='1' name='written'<?= $data->written == 1 ? " checked='checked'" : ""; ?>/></td>
     <td class='status'><select name='article_status_id'><?= $this->status_options($data->article_status_id); ?></select></td>
     <td class='notes'><textarea name='notes'><?= $data->notes; ?></textarea></td>
     <td class='assign_td'>

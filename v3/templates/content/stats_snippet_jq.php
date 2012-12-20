@@ -8,4 +8,5 @@
     <li><span class='light'>In Gallery:</span> ${in_gallery}</li>
     <li><span class='light'>Live:</span> ${live}</li>
     <li><span class='light'>Other:</span> ${other}</li>
+    <li><span class='light'>Written:</span> ${written}</li>
 </ul>

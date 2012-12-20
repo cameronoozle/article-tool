@@ -1,63 +1,73 @@
 <?php
 namespace API\SEO {
     class Keywords extends \Endpoint {
+	private $updatequery;
         public function __construct($parameters){
             parent::__construct($parameters);
         }
-        public function floggingmolly(){
-            $d = $this->get_db()->query("SELECT DISTINCT keyword FROM keywords");
-            return $this->success($d['rows']);
-        }
-        
-/*        public function snag(){
-            $r = new \Requester();
-            $d = $r->get("http://oozlemedia.net/seo/v2/api/keywords/floggingmolly");
-            $data = json_decode($d['contents']);
-            $db = $this->get_db();
-            $query = "INSERT IGNORE INTO keywords (keyword) VALUES ";
-            $inserts = array();
-            foreach ($data->data as $row){
-                array_push($inserts,"('".$db->esc($row->keyword)."')");
-            }
-            $query = $query.implode(",",$inserts);
-            $db->query($query);
-            return $this->success(array("All of this."));
-	}*/
-
-        
+	
+	//The save method allows you to update existing keywords as they are associated with a client, but does not allow you to add new ones.
+	//If you want to add a new keyword, you have to add a new article and associate it with the desired keyword.
+	//There's just not much utility for an add-keywords method right now.
         public function save(){
-            $reqs = new \Required_Parameters(array(),array("keyword"=>\Types::String));
+            $reqs = new \Required_Parameters(array(),array("client_id"=>\Types::Int,"keyword_id"=>\Types::Int,"keyword"=>\Types::String));
             return $this->validate_output($reqs,true,new \Permission(2,"SEO"),array($this,"save_callback"));
         }
         public function save_callback(){
-            $db = $this->get_db();
-            $query = "INSERT INTO keywords (keyword_id,keyword) VALUES ";
-            $inarray = array();
-            if (\Array_Manager::is_multidimensional($this->parameters)){
-                foreach ($this->parameters as $parameters){
-                    array_push($inarray,$this->save_callback2($parameters));
-                }
-            } else {
-                array_push($inarray,$this->save_callback2($this->parameters));
-            }
-            if (count($inarray) > 0){
-                $d = $db->query($query.implode(",",$inarray)." ON DUPLICATE KEY UPDATE keyword = VALUES (keyword)");
-            }
+	    $db = $this->get_db();
+
+	    //This query updates the keyword from one to another for a given client with a given keyword. For example, I can change the keyword
+	    //for all articles with the client "Brillare" and the keyword "beauty schools in mesa az" to "cosmetology in mesa".
+	    $this->updatequery = "UPDATE articles SET keyword_id = CASE ";
+
+	    if (\Array_Manager::is_multidimensional($this->parameters)){
+		foreach ($this->parameters as $parameters){
+		    $this->save_callback2($parameters);
+		}
+	    } else {
+		$this->save_callback2($this->parameters);
+	    }
+
+	    $db->query($this->updatequery." END");
         }
         
-        public function save_callback2($parameters){
-            $db = $this->get_db();
-            $handy = $this->handy();
-            return "(".$this->handy()->val_or_null('keyword_id',$parameters).",".$db->esc($parameters['keyword']).")";
-        }
+	public function save_callback2($parameters){
+	    $db = $this->get_db();
+
+	    //Attempt to insert a new keyword into the keywords table:
+	    $query2 = "INSERT IGNORE INTO keywords (keyword) VALUES ('".$db->esc($parameters['keyword'])."')";
+	    $d = $db->query($query2);
+
+	    //If the keyword was inserted, save its ID. If it wasn't inserted, it must already be in there, so select its ID from the table.
+	    if ($d['affected_rows'] > 0){
+		$id = $d['insert_id'];
+	    } else {
+		$query2 = "SELECT keyword_id FROM keywords WHERE keyword = '".$db->esc($parameters['keyword'])."'";
+		$id = $d['rows'][0]['keyword_id'];
+	    }
+
+	    //Append to our ultimate query: Where the keyword is x and the client is y, set the keyword to z.
+	    $this->updatequery .= "WHEN keyword_id = ".$db->esc($parameters['keyword_id'])." AND client_id = ".$db->esc($parameters['client_id'])." THEN ".$db->esc($id)." ";
+	}
         
         public function search(){
-            $reqs = new \Required_Parameters();
+            $reqs = new \Required_Parameters(array(),array("client_id"=>\Types::Int));
             return $this->validate_output($reqs,false,new \Permission(2,"SEO"),array($this,"search_callback"));
         }
         public function search_callback(){
-            $db = $this->get_db();
-            $opts = array("tag_id","keyword_id");
+	    $db = $this->get_db();
+	    $query = "SELECT COUNT(article_id) num_articles, client,client_id,keyword,keyword_id FROM articles LEFT JOIN keywords USING (keyword_id) LEFT JOIN clients USING (client_id) WHERE client_id = ".$db->esc($this->parameters['client_id'])." GROUP BY keyword_id ORDER BY keyword";
+	    $d = $db->query($query);
+	    return $this->success($d['rows']);
+	    
+	    
+	    
+	    
+	    
+	    
+	    
+/*            $db = $this->get_db();
+            $opts = array("tag_id","keyword_id","client_id");
             $wheres = array();
             foreach ($opts as $opt){
                 if ((isset($this->parameters[$opt]))&&(is_numeric($this->parameters[$opt]))){
@@ -77,10 +87,11 @@ namespace API\SEO {
                                 "LEFT JOIN clients USING (client_id) ".
                                 (count($wheres) > 0 ? "WHERE ".implode(" AND ",$wheres) : "").
                                 " ORDER BY client,keyword,tag ".$this->pagify();
-                }
+            }
+	    echo $query."\n\n";
             $d = $db->query($query);
             $obj = array("num_results"=>$db->found_rows(),"rows"=>$d['rows']);
-            return $this->success($obj);
+            return $this->success($obj);*/
         }
         
         public function add_tag(){

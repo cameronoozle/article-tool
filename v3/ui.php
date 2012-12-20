@@ -4,10 +4,6 @@ include('api_files/all_api.php');
 include('ui_files/all_ui.php');
 include('parse_request.php');
 $parameters = parse_request();
-/*
-echo "Parameters: "
-print_r($parameters);
-*/
 
 function error($str){
 	echo json_encode(Endpoint::error(array($str)));

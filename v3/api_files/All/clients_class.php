@@ -76,6 +76,16 @@ namespace API\All {
             }
             //Show only clients to which the user has access.
         }
+        private function refresh_filter($sugar_client_id,$service){
+            foreach ($this->db_client_services as $n=>$v){
+                if (($v['sugar_client_id'] == $sugar_client_id)&&($v['service'] == $service)){
+                    return $n;
+                }
+            }
+            return -1;
+        }
+        private $db_client_services;
+        
         public function refresh(){
             $reqs = new \Required_Parameters();
             return $this->validate_output($reqs,false,new \Permission(1,array("Content","SEO","PPC","Web Development")),array($this,"refresh_callback"),false);
@@ -83,7 +93,7 @@ namespace API\All {
         public function refresh_callback(){
             $db = $this->get_db();
             $d = $db->query("SELECT sugar_client_id,client,service FROM client_service_pairings LEFT JOIN clients USING (client_id) LEFT JOIN services USING (service_id)");
-            $db_client_services = $d['rows'];
+            $this->db_client_services = $d['rows'];
             $select_fields = array();
             $sugar = new \Sugar_API("cameron","Monk2ey");
             $params = array('module_name'=>'Accounts','query'=>'','order_by'=>'','offset'=>'0','select_fields'=>array(),'link_name_to_fields_array'=>array(array('name'=>'name')),'max_results'=>'900','Favorites'=>'false');
@@ -106,20 +116,24 @@ namespace API\All {
                         $stripped = str_replace("^","",$service);
                         if (!empty($stripped)){
                             array_push($selects2,"SELECT client_id,(SELECT service_id FROM services WHERE service = '".$db->esc($stripped)."') FROM clients WHERE client='".$db->esc($nvl->name->value)."'");
-                            $current_index = array_search(array("sugar_client_id"=>$entry->id,"service"=>$stripped),$db_client_services);
-                            array_splice($db_client_services,$current_index,1);
+                            $current_index = $this->refresh_filter($entry->id,$stripped);
+                            array_splice($this->db_client_services,$current_index,1);
                         }
                     }
             }
-            $data = $db->query(substr_replace($query,"",-1,1)." ON DUPLICATE KEY UPDATE client = VALUES (client)");
-            $data2 = $db->query($query2.implode(" UNION ",$selects)." ON DUPLICATE KEY UPDATE budget=VALUES(budget),seo_percentage=VALUES(seo_percentage)");
-            $data3 = $db->query($query3.implode(" UNION ",$selects2));
+            $query = substr_replace($query,"",-1,1)." ON DUPLICATE KEY UPDATE client = VALUES (client)";
+            $query2 = $query2.implode(" UNION ",$selects)." ON DUPLICATE KEY UPDATE budget=VALUES(budget),seo_percentage=VALUES(seo_percentage)";
+            $query3 = $query3.implode(" UNION ",$selects2);
+            $data = $db->query($query);
+            $data2 = $db->query($query2);
+            $data3 = $db->query($query3);
             $deletewheres = array();
             $deletequery = "DELETE FROM client_service_pairings WHERE ";
-            foreach ($db_client_services as $service){
+            foreach ($this->db_client_services as $service){
                 array_push($deletewheres,"(client_id=(SELECT client_id FROM clients WHERE sugar_client_id='".$service['sugar_client_id']."') AND service_id=(SELECT service_id FROM services WHERE service='".$service['service']."'))");
             }
-            if (count($deletewheres) > 0) $db->query($deletequery.implode(" OR ",$deletewheres));
+            $deletequery .= implode(" OR ",$deletewheres);
+            if (count($deletewheres) > 0) $db->query($deletequery);
             return $this->success(array("Clients successfully refreshed."));
         }
     }

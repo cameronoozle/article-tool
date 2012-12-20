@@ -16,23 +16,14 @@ namespace UI {
                 include('templates/error.php');
         }
         public function permissions(){
-            $perm = new \Permission(3,"Content");
-            if ($perm->has_permission()){
-                $api = new \API\Content\Users(array("department_id"=>3));
-                $model = $api->search();
-                $data = $model->data;
-                if ($model->status == 'success')
-                    include('templates/permissions.php');
-                else
-                    include('templates/error.php');
-            } else {
-                $data = array("You do not have permission to access this module.");
-                include('templates/error.php');
-            }
+            $this->permissions_callback(3,"SEO");
         }
         public function keywords(){
             $perm = new \Permission(2,"SEO");
             if ($perm->has_permission()){
+                $api = new \API\SEO\Keywords($this->parameters);
+                $model = $api->search();
+                $data = $model->data;
                 include('templates/seo/keywords.php');
             } else {
                 $data = array("You do not have permission to access this module.");

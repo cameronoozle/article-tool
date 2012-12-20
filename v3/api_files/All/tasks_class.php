@@ -64,7 +64,7 @@ namespace API\All {
             $db = $this->get_db();
             $d = $db->query("SELECT * FROM articles INNER JOIN tasks USING (task_id) WHERE article_status_id = 5");
             $as = new \Asana_API(Users::asana_api_key());
-            $query = "UPDATE articles SET article_status_id = 6 WHERE article_status_id = 5 AND (";
+            $query = "UPDATE articles SET article_status_id = 6, written=1 WHERE (article_status_id = 5 OR written=0) AND (";
             $wheres = array();
             for ($i=0;$i<count($d['rows']);$i++){
                 $a = $as->as_get("/tasks/".$d['rows'][$i]['asana_task_id']);
@@ -78,24 +78,31 @@ namespace API\All {
             $d = $db->query($query);
         }
         public function fix (){
+            if (!isset($_SESSION['blackmarks']))
+                $_SESSION['blackmarks'] = array();
             set_time_limit(0);
             $db = $this->get_db();
-            $query = "SELECT * FROM tasks WHERE asana_team_member_id = 0 OR asana_team_member_id IS NULL";
+            $wheres = array();
+            foreach ($_SESSION['blackmarks'] as $blackmark){
+                array_push($wheres,"task_id != ".$blackmark);
+            }
+            $query = "SELECT * FROM tasks WHERE ".(count($wheres) > 0 ? "(".implode(" AND ",$wheres).") AND " : "")." asana_team_member_id = 0 OR asana_team_member_id IS NULL LIMIT 15";
             $d = $db->query($query);
             print_r($d);
             $as = new \Asana_API(Users::asana_api_key());
             $query = "UPDATE tasks SET asana_team_member_id = CASE (asana_task_id) ";
-            for ($i=0;$i<count($d['rows']);$i++){
+            for ($i=0;$i<(count($d['rows']) < 15 ? count($d['rows']) : 15);$i++){
                 $a = $as->as_get("/tasks/".$d['rows'][$i]['asana_task_id']);
                 $q = json_decode($a['contents']);
-                print_r($q);
                 $d['rows'][$i]['status'] = ($q->data->completed == 1 ? 6 : "");
                 if (is_object($q->data->assignee)){
                     $d['rows'][$i]['blah'] = $q->data;                
                     $d['rows'][$i]['stuff'] = $q->data->assignee->id;
                     $query .= "WHEN '".$d['rows'][$i]['asana_task_id']."' THEN '".$d['rows'][$i]['stuff']."' ";
+                } else {
+                    array_push($_SESSION['blackmarks'],$d['rows'][$i]['task_id']);
                 }
-                sleep(1);
+                usleep(250000);
             }
             $query .= " ELSE asana_team_member_id END WHERE asana_team_member_id = 0 OR asana_team_member_id IS NULL";
             echo $query."\n\n";
@@ -140,6 +147,17 @@ namespace API\All {
                 return $this->error(array("Looks like the Asana server is down."));
             }
         }
+        public function delete(){
+            $reqs = new \Required_Parameters(array(),array("asana_task_id"=>\Types::Int));
+            return $this->validate_output($reqs,false,new \Permission(2,array("Content","SEO","PPC","Web Development")),array($this,"delete_callback"));
+        }
+        public function delete_callback(){
+            $db = $this->get_db();
+            $query = "DELETE FROM tasks WHERE asana_task_id = ".$db->esc($this->parameters['asana_task_id']);
+            $db->query($query);
+            return $this->success(array("Task deleted."));
+        }
+        
         public function update(){
             $reqs = new \Required_Parameters(array(),array("asana_task_id"=>\Types::Int));
             return $this->validate_output($reqs,false,new \Permission(1,array("Content","SEO","PPC","Web Development")),array($this,"update_callback"));
@@ -167,7 +185,7 @@ namespace API\All {
                 }
                 if (count($sets) > 0){
                     $db = $this->get_db();
-                    $db->query("UPDATE tasks SET ".implode(",",$sets));
+                    $db->query("UPDATE tasks SET ".implode(",",$sets)." WHERE asana_task_id = ".$this->parameters['asana_task_id']);
                 }
                 return $this->success(array("Task successfully updated."));
             } else if (isset($q->errors)){

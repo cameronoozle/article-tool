@@ -135,23 +135,45 @@ namespace API\All {
             } else {
                 return $this->error(array("Looks like someone is already using that email or API key."));
             }
-
-
+        }
+        public function search_pay_grades(){
+            $reqs = new \Required_Parameters();
+            return $this->validate_output($reqs,false,new \Permission(3,array("Content","SEO","PPC","Web Development")),array($this,"search_pay_grades_callback"));
+        }
+        public function search_pay_grades_callback(){
+            $db = $this->get_db();
+            $query = "SELECT * FROM pay_grades";
+            $d = $db->query($query);
+            return $this->success($d['rows']);
         }
         public function set_permissions(){
-            $reqs = new \Required_Parameters(array(),array("user_id"=>\Types::Int,"department_id"=>\Types::Int,"pay_grade_id"=>\Types::Int));
-            return $this->validate_output($reqs,false,new \Permission(3,array("Content","SEO","PPC","Web Development")),array($this,"set_permissions_callback"));
+            $reqs = new \Required_Parameters(array(),array("permission_id"=>\Types::Int,"pay_grade_id"=>\Types::Int,"department_id"=>\Types::Int));
+            return $this->validate_output($reqs,true,new \Permission(3,array("Content","SEO","PPC","Web Development")),array($this,"set_permissions_callback"));
         }
         public function set_permissions_callback(){
             $db = $this->get_db();
-            $d = $db->query("SELECT department FROM departments WHERE department_id = ".$db->esc($this->parameters['department_id']));
+            if (\Array_Manager::is_multidimensional($this->parameters))
+                $dept_id = $this->parameters[0]['department_id'];
+            else
+                $dept_id = $this->parameters['department_id'];
+            $query1 = "SELECT department FROM departments WHERE department_id = ".$db->esc($dept_id);
+            $d = $db->query($query1);
             if (count($d['rows']) > 0){
                 $perm = new \Permission(3,$d['rows'][0]['department']);
                 if ($perm->has_permission()){
-                    $d = $db->query("INSERT INTO permissions (user_id,department_id,pay_grade_id) ".
-                    "VALUES (".$db->esc($this->parameters['user_id']).",".$db->esc($this->parameters['department_id']).",".$db->esc($this->parameters['pay_grade_id']).") ".
-                    "ON DUPLICATE KEY UPDATE pay_grade_id = VALUES(pay_grade_id)");
-                    return $this->success(array("Permission successfully updated."));
+                    $query = "UPDATE permissions SET pay_grade_id = CASE (permission_id) ";
+                    if (\Array_Manager::is_multidimensional($this->parameters)){
+                        $department_id = $parameters['department_id'];
+                        foreach ($this->parameters as $parameters){
+                            $query .= "WHEN ".$db->esc($parameters['permission_id'])." THEN ".$db->esc($parameters['pay_grade_id'])." ";
+                        }
+                    } else {
+                        $department_id = $this->parameters['department_id'];
+                        $query .= "WHEN ".$db->esc($this->parameters['permission_id'])." THEN ".$db->esc($this->parameters['pay_grade_id'])." ";
+                    }
+                    $query .= "END WHERE department_id = ".$db->esc($dept_id);
+                    $d = $db->query($query);
+                    return $this->success(array("Permissions successfully updated."));
                 } else {
                     return $this->error(array("You do not have permission to set permissions within this department."));
                 }
@@ -183,7 +205,7 @@ namespace API\All {
             if (count($d['rows']) > 0){
                 $perm = new \Permission(3,$d['rows'][0]['department']);
                 if ($perm->has_permission()){
-                    $d = $db->query("SELECT user_id,user_full_name FROM users LEFT JOIN permissions USING (user_id) LEFT JOIN departments USING (department_id) WHERE department_id = ".$db->esc($this->parameters['department_id']));
+                    $d = $db->query("SELECT user_id,user_full_name,department_id,permission_id,pay_grade_id FROM users LEFT JOIN permissions USING (user_id) LEFT JOIN departments USING (department_id) WHERE department_id = ".$db->esc($this->parameters['department_id']));
                     return $this->success($d['rows']);
                 } else {
                     return $this->error(array("You do not have permission to search in this department."));
