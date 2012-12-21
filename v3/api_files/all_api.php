@@ -25,6 +25,6 @@ $arr = array(
     "SEO/keywords_class"
 );
 foreach ($arr as $file){
-    include($file.".php");
+    include($_SERVER['DOCUMENT_ROOT']."/article-tool/v3/api_files/".$file.".php");
 }
 ?>

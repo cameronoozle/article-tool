@@ -1,0 +1,185 @@
+namespace API
+-    namespace Content
+--        class Articles
+            function save
+                pay_grade:1
+                requires: []
+                optional: [
+                    word_count(int),
+                    cost(float),
+                    client(string),
+                    client_id(int),
+                    project(string),
+                    project_id(int),
+                    article_id(int),
+                    target_url(string),
+                    target_url_id(int),
+                    post_location(string),
+                    post_location_id(int),
+                    post_url(string),
+                    post_url_id(int),
+                    completed(bool),
+                    posted(bool),
+                    task_id(int),
+                    notes(string)
+                ]
+            function search
+                pay_grade:1
+                requires: [month(datetime)]
+                optional: [client(string),client_id(int)]
+            function delete
+                pay_grade:2
+                requires: [article_id(int)]
+                optional: []
+            function assign
+                pay_grade:1
+                requires: [article_id(int),team_member_id(int)]
+                optional: [keyword(string),client(string),word_count(int),post_location:(string),target_url(string),asana_project_id(int),notes(string)]
+                quirks: Allows user to assign only to themselves.
+            function assign_admin
+                pay_grade:2
+                requires: [article_id(int),team_member_id(int)]
+                optional: [keyword(string),client(string),word_count(int),post_location:(string),target_url(string),asana_project_id(int),notes(string)]
+                quirks: Allows user to assign to anyone.
+            function reassign
+                pay_grade:2
+                requires: [article_id(int),team_member_id(int),asana_team_member_id(int),asana_task_id(int)]
+                optional: []
+                quirks: Allows user to reassign articles to anyone. This method is inaccessible to lower-level employees.
+            function unassign
+                pay_grade:1
+                requires: [article_id(int),asana_task_id(int)]
+                optional: []
+                quirks: Allows user to unassign an article, as long as they were the original assignee.
+            function unassign_admin
+                pay_grade:2
+                requires: [article_id(int),asana_task_id(int)]
+                optional: []
+                quirks: Allows user to unassign an article, no matter who the original assignee was.
+
+-    namespace SEO
+--        class Keywords
+            function save
+                pay_grade:2
+                requires: [keyword(string)]
+                optional: []
+            function search
+                pay_grade:2
+                requires: []
+                optional: [month(datetime),client(string),client_id(int),tag(string),tag_id(int)]
+            function add_tag
+                pay_grade:2
+                requires: [keyword_id(int),tag_id(int)]
+                optional: []
+            function delete_tag
+                pay_grade:2
+                requires: [keyword_tag_pairing_id(int)]
+--        class Checklists
+            function save
+                pay_grade:1
+                requires: [checklist_item_id(int)]
+                optional: [team_member(string),team_member_id(int),completed(bool),task_id(int)]
+            function search
+                pay_grade:1
+                requires: [client_id(int),month(int)]
+                optional: []
+            function add_item
+                pay_grade:2
+                requires: [checklist_item(string),month(int)]
+                optional: [parent_item_id(int)]
+--        class Tags
+            function save
+                pay_grade:2
+                requires: [tag(string)]
+                optional: [tag_id(int)]
+
+-    namespace All
+--        class Users
+            function login
+                pay_grade:-1
+                requires: [user_email_address(email),user_password(string)]
+                optional: []
+                quirks: You do not have to be logged in to access this method.
+            function register
+                pay_grade:-1
+                requires: [user_email_address(email),user_full_name(string),user_password(string),confirm_password(string),asana_api_key(string)]
+                optional: []
+                quirks: You do not have to be logged in to access this method.
+            function set_permissions
+                pay_grade:3
+                requires: [user_id(int),department_id(int),pay_grade_id(int)]
+                optional: []
+            function verify
+                pay_grade:-1
+                requires: [verification_code:(string),user_id(int)]
+                optional: []
+                quirks: You do not have to be logged in to access this method.
+            function search
+                pay_grade:3
+                requires: [department_id(int)]
+                optional: []
+            function request_new_password
+                pay_grade:-1
+                requires: []
+                optional: []
+                quirks: Stores and emails a validation code to the user. A user can only use the method for him or herself.
+            function create_new_password
+                pay_grade:-1
+                requires: [user_id(int),validation_code(string),user_password(string),confirm_password(string)]
+                quirks: Checks the validation code against the user_id to validate the request.
+--        class Departments
+            function search
+                pay_grade:1
+                requires: []
+                optional: []
+                
+                
+                    //I got to here before my brain crapped out.
+                
+                
+                
+--        class Projects
+            function search
+                pay_grade:1
+                requires: [department_id(int)]
+                optional: []
+                quirks: must have pay_grade >= 1 in the --department requested-- in order to search
+--        class Tasks
+            function create
+                pay_grade:1
+                requires: [client_id()]
+                optional: [assignee(int),asana_team_member_id(int),notes(string),name(string),asana_project_id(int)]
+            function update
+                pay_grade:1
+                requires: [asana_task_id(int)]
+                optional: [assignee(int),asana_team_member_id(int),notes(string),name(string)]
+            function search
+                pay_grade:2
+                requires: [department_id(int),month(datetime),asana_team_member_id(int),team_member_id(int),client_id(int),asana_project_id(int)][]
+                optional: []
+            function refresh
+                pay_grade:2
+                requires: []
+                optional: []
+--        class Team_members
+            function search
+                pay_grade:1
+                requires: [module_id(int)][]
+                optional: []
+                quirks: the user must have access to the module they are searching in.
+--        class Modules
+            function search
+                pay_grade:1
+                requires: []
+                optional: [department_id(int)]
+                quirks: the user will only be shown the modules to which they have access.
+--        class Clients
+            function search
+                pay_grade:1
+                requires: [department_id(int),department(string)]
+                optional: []
+                quirks: the user will only be shown clients in departments to which they have access.
+            function refresh
+                pay_grade:2
+                requires: []
+                optional: []

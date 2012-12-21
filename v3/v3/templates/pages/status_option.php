@@ -1,0 +1,1 @@
+<option <?= ($status->article_status_id == $target ? "selected='selected'" : "");?> value='<?= $status->article_status_id ?>'><?= $status->article_status; ?></option>

@@ -3,7 +3,7 @@ class Asana_API extends Requester {
 	private $api_key;
 	private $url;
 	
-	function __construct($api_key){
+	public function __construct($api_key){
 		parent::__construct();
 		$this->api_key = $api_key;
 		curl_setopt($this->ch,CURLOPT_USERPWD,$this->api_key.":");

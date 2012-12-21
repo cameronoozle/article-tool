@@ -1,5 +1,8 @@
 <?php
 class DatabaseConnection {
+	//Singleton pattern:
+	//To allocate and initialize a DatabaseConnection object, use DatabaseConnection::get()->link()
+	
 	public static function get(){
 		static $db = null;
 		if ( $db == null )
