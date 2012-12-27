@@ -1,7 +1,7 @@
 <?php
 class Workspace extends AsanaObject {
     public $name,$id,$users,$projects;
-    private $targ_proj_id;
+    private $targ_proj_id, $tasks, $targ_task_id;
     public function __construct($name,$id){
         //Assign my name and ID.
         $this->name = $name;
@@ -14,10 +14,18 @@ class Workspace extends AsanaObject {
         
         //Get a list of users and assign it to $this->users;
         $userRequest = $interface->as_get("/workspaces/".$this->id."/users");
-        $this->users = json_decode($userRequest['contents'])->data;
+        $this->users = array_map(array($this,"assigneeMap"),json_decode($userRequest['contents'])->data);
+
         //Get a list of projects and assign it to $this->projects;
         $projRequest = $interface->as_get("/workspaces/".$this->id."/projects");
-        $this->projects = json_decode($projRequest['contents'])->data;
+        $this->projects = array_map(array($this,"projMap"),json_decode($projRequest['contents'])->data);
+        $this->tasks = array();
+    }
+    private function projMap($obj){
+        return new Project($obj->name,$obj->id);
+    }
+    private function assigneeMap($obj){
+        return new Assignee($obj->id,$obj->name);
     }
     private function projFilter($obj){
         return ($obj->id == $this->targ_proj_id);
@@ -31,41 +39,79 @@ class Workspace extends AsanaObject {
         //construct a project from the item in the list and return it.
         if (count($filtered) > 0)
             foreach ($filtered as $project)
-                return new Project($project->name,$project->id);
+                return $project;
         else
             return null;
     }
     public function createProject($projectName){
         //Use the Asana interface to create a new project, turn it into a project object and return it.
-        $project = new Project($projectName,0,$this->id);
+        $project = Project::create($projectName,$this->id);
         array_push($this->projects,$project);
         return $project;
     }
+    private function filter($obj){
+        return $obj->id == $this->targ_task_id;
+    }
+    
     public function getTask($taskID){
-        //Check to make sure that the task specified by the ID is in $this->tasks.
-        //If it is, retrieve the task from the API, turn it into a task object and return it.
+        //If the task is in $this->tasks, return it.
+        $this->targ_task_id = $taskID;
+        $filtered = array_filter($this->tasks,array($this,"filter"));
+        if (count($filtered) > 0)
+            foreach ($filtered as $task)
+                return $task;
+
+        //Otherwise, create a new Task object using the task ID,
+        $task = Task::get($taskID);
+        //add it to $this->tasks
+        array_push($this->tasks,$task);
+        //return it.
+        return $task;
     }
     public function addTask(Task $task){
         //Create a new task that is a perfect copy of the one provided.
+        $copy = Task::create($task->name,$this->id,$task->assignee,$task->notes);
         //Add the new task to $this->tasks.
+        array_push($this->tasks,$copy);
         //Delete the task from the database.
         //Update the task object to make it clear that it has been deleted.
+        $task->update("Deleted",null,"");
     }
     public function deleteTask($taskID){
+        $this->targ_task_id = $taskID;
         //Delete the task from the database.
         //Remove it from $this->tasks.
-        //Update the task object to make it clear it has been deleted.
+        $filtered = array_filter($this->tasks,array($this,"filter"));
+        if (count($filtered) > 0){
+            foreach ($filtered as $index=>$task){
+                //Update the task object to make it clear it has been deleted.
+                $task->update("Deleted",null,"");
+                array_splice($this->tasks,$index,1);
+            }
+        }
     }
     public function createTask($name,Assignee $assignee,$notes){
         //Create a new task object assigned to self.
+        $task = Task::create($name,$this->id,$assignee,$notes);
         //Add the new task object to $this->tasks.
+        array_push($this->tasks,$task);
         //Return the new task.
-        //$newTask = new Task($name,$assignee,$notes,$this);
-        //array_push($this->tasks,$newTask);
-        //return $newTask;
+        return $task;
+    }
+    private function userFilter($obj){
+        return $obj->id == $this->targ_user_id;
     }
     public function getAssignee($assigneeID){
         //Filter $this->users and return the user with the matching ID.
+        $this->targ_user_id = $assigneeID;
+        $filtered = array_filter($this->users,array($this,"userFilter"));
+        if (count($filtered) > 0){
+            foreach ($filtered as $user){
+                return $user;
+            }
+        } else {
+            return null;
+        }
     }
 }
 ?>

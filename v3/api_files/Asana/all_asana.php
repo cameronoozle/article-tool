@@ -1,6 +1,6 @@
-<?php
+<pre><?php
 if (!isset($_SESSION)) session_start();
-header("Content-type: text/plain");
+//header("Content-type: text/plain");
 include('../all_api.php');
 $arr = array(
     "asanaobject",
@@ -15,5 +15,6 @@ foreach ($arr as $file)
     include($file."_class.php");
 
 $asana = new Asana();
-print_r($asana->getWorkspace(491687816227)->getProject(636387877740));
-?>
+print_r($asana->getWorkspace(314316658137)->getTask(2848496446411));
+//->getTask(2360067917651)
+?></pre>

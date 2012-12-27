@@ -137,7 +137,9 @@ var articles = {
                 },data);
         });
         this.calcCost = function(el,cb){
-            $(el).closest("tr").find("td[name='cost']").html(_self.model.calculateCost($(el).html().replace(/(<([^>]+)>)/ig,"")));
+            var calculatedCost = _self.model.calculateCost($(el).html().replace(/(<([^>]+)>)/ig,""));
+            console.log(calculatedCost);
+            $(el).closest("tr").find("td[name='cost']").html(calculatedCost);
             if (cb){
                 var cost = 0;
                 $("td[name='cost']").each(function(){cost += parseFloat($(this).html().replace(/(<([^>]+)>)/ig,""));});

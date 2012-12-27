@@ -12,7 +12,7 @@ class AsanaObject {
             $dbObj = new DB(SERVER,USER,PW,DB);
         return $dbObj;
     }
-    protected function caller(){
+    protected static function caller(){
         $backtrace = debug_backtrace();
         return $backtrace[2];
     }

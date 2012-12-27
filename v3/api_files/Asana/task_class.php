@@ -1,75 +1,76 @@
 <?php
 class Task extends AsanaObject {
-    public $id, $assignee, $notes, $name, $projects;
+    public $id, $name, $assignee, $notes, $projects, $dueDate;
     
-    public function __construct($id = 0, $name = "", $assignee = null, $notes = "", $workspaceID = 0){
-        $caller = $this->caller();
+    public static function get($id){
+        $caller = AsanaObject::caller();
         if ($caller['class'] !== 'Workspace')
             throw new Exception("Only a Workspace object can create a new Task");
 
-        //If an ID is provided, get task details based on the ID from the Asana API.
-        if ($id){
-            //Request details from Asana.
-            $interface = $this->getAPI();
-            $taskRequest = $interface->as_get("/tasks/".$id);
-            $q = json_decode($taskRequest['contents']);
-            if (isset($q->data)){
-
-                //Assign details to self.
-                $d = $q->data;
-                $this->id = $d->id;
-                $this->name = $d->name;
-                if (!empty($d->assignee))
-                    $this->assignee = new Assignee($d->assignee->id,$d->assignee->name);
-                $this->notes = $d->notes;
-                foreach ($d->projects as $proj){
-                    array_push($this->projects, new Project($proj->name,$proj->id));
-                }
-
-            } else {
-                throw new Exception("Asana Task Details request failed");
+        //Request details from Asana.
+        $interface = new Asana_API(\API\All\Users::asana_api_key());
+        $taskRequest = $interface->as_get("/tasks/".$id);
+        $q = json_decode($taskRequest['contents']);
+        
+        //Create and return a new Task.
+        if (isset($q->data)){
+            $d = $q->data;
+            $task = new Task($d->id,$d->name,$d->assignee,$d->notes,$d->due_on);
+            
+            //Add all projects to the created task.
+            foreach ($d->projects as $proj){
+                array_push($task->projects, new Project($proj->name,$proj->id));
             }
-
-        //If a name and workspace ID and NO task ID are provided, create a new task via the Asana API.
-        } else if ((!empty($name))&&($workspaceID)&&(!$id)){
-            
-            //Attempt to create a new task through API.
-            $interface = $this->getAPI();
-            
-            //Set up task specifications to send to Asana.
-            $params = array("name"=>$name,"notes"=>$notes,"workspace"=>$workspaceID);
-            if (isset($assignee->id))
-                $params['assignee'] = $assignee['id'];
-                
-            //Make the request.
-            $taskRequest = $interface->as_post("/tasks",json_encode(array("data"=>$params)));
-            $q = json_decode($taskRequest['contents']);
-
-            if (isset($q->data)){
-                
-                //Assign details to self.
-                $d = $q->data;
-                $this->id = $d->id;
-                $this->name = $name;
-                $this->assignee = $assignee;
-                $this->notes = $notes;
-                
-                foreach ($d->projects as $proj){
-                    array_push($this->projects, new Project($proj->name,$proj->id));
-                }
-                
-            } else {
-                throw new Exception("Asana Task Creation request failed");
-            }
-            //Add functionality to save new task in database.
-            
-            
-            
-        //Otherwise, throw an exception.
+            return $task;
         } else {
-            throw new Exception("Task Constructor must have either an ID or both a workspace ID and name");
+            throw new Exception("Asana Task Details request failed");
         }
     }
+    
+    public static function create($name,$workspaceID,$assignee = null,$notes = "",$dueDate = ""){
+
+        //Default date for articles is the 25th day of the month - not handled here.
+        $caller = AsanaObject::caller();
+        if ($caller['class'] !== 'Workspace')
+            throw new Exception("Only a Workspace object can create a new Task");
+        
+        //Set up the Asana interface.
+        $interface = new Asana_API(\API\All\Users::asana_api_key());
+
+        //Set up task specifications to send to Asana.
+        $params = array("name"=>$name,"notes"=>$notes,"workspace"=>$workspaceID,"due_on"=>$dueDate);
+        if (isset($assignee->id))
+            $params['assignee'] = $assignee->id;
+        //Make the request.
+        $taskRequest = $interface->as_post("/tasks",json_encode(array("data"=>$params)));
+        $q = json_decode($taskRequest['contents']);
+        
+        //Create and return a new Task.
+        if (isset($q->data)){
+            $d = $q->data;
+            $task = new Task($d->id,$d->name,$d->assignee,$d->notes,$d->due_on);
+            
+            //Add all projects to the new task.
+            foreach ($d->projects as $proj){
+                array_push($task->projects, new Project($proj->name,$proj->id));
+            }
+        } else {
+            throw new Exception("Task Creation Request failed");
+        }
+        
+        //Add new task to the task database.
+        
+    }
+    
+    private function __construct($id, $name, $assignee, $notes, $dueDate){
+        $this->projects = array();
+        $this->id = $id;
+        $this->name = $name;
+        $this->assignee = $assignee;
+        $this->notes = $notes;
+        $this->dueDate = $dueDate;
+    }
+
     public function addProject(Project $project){
         //Use Asana API to add a project to self.
         $interface = $this->getAPI();
@@ -79,6 +80,7 @@ class Task extends AsanaObject {
         //Return self, to allow chaining, I guess. This isn't really super necessary.
         return $this;
     }
+
     public function removeProject($projectID){
         //Use Asana API to remove a project.
         $interface = $this->getAPI();
@@ -91,7 +93,7 @@ class Task extends AsanaObject {
         //Return self.
     }
 
-    public function update($name="428diemcwpqmd",$assignee="639cfe8fmn5830",$notes="320d485ydk920887"){
+    public function update($name="428diemcwpqmd",$assignee="639cfe8fmn5830",$notes="320d485ydk920887",$dueDate="5dk49dkA0A94kdi"){
         //The argument defaults are intentionally obscure so as to ensure that the user doesn't accidentally set
         //Any task attributes to null.
 
@@ -101,7 +103,7 @@ class Task extends AsanaObject {
             $params['name'] = $name;
             $this->name = $name;
         }
-        if ((get_class($assignee) == 'Assignee')||(is_null($assignee))){
+        if ((!is_string($assignee))||(is_null($assignee))){
             $params['assignee'] = $assignee->id;
             $this->assignee = $assignee;
         }
@@ -109,8 +111,14 @@ class Task extends AsanaObject {
             $params['notes'] = $notes;
             $this->notes = $notes;
         }
+        if ($dueDate !== "5dk49dkA0A94kdi"){
+            $params['due_on'] = $dueDate;
+            $this->dueDate = $dueDate;
+        }
+
         if (count($params) > 0){
-            $updateRequest = $interface->as_put("/tasks/".$this->id,json_encode(array("data"=>$params)));
+            $interface = $this->getAPI();
+            $updateRequest = $interface->as_put("/tasks/".$this->id,array("data"=>$params));
             $q = json_decode($updateRequest['contents']);
             if (!isset($q->data)){
                 throw new Exception("Asana Task Update request failed.");

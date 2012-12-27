@@ -1,49 +1,50 @@
 <?php
 class Project extends AsanaObject {
-    public $id,$name;
-    public function __construct($name = "",$id = 0,$workspaceID = 0){
-        $caller = $this->caller();
-        if ($caller['class'] !== 'Workspace')
+    public $id,$name,$tasks;
+    
+    public static function get($id){
+        $interface = new Asana_API(\API\All\Users::asana_api_key());
+        $projRequest = $interface->as_get("/projects/".$id);
+        $q = json_decode($projRequest['contents']);
+        if (isset($q->data)){
+            return new Project($this->name,$this->id);
+        } else {
+            throw new Exception("Asana Project Details request failed");
+        }
+    }
+    public static function create($name,$workspaceID){
+        $caller = AsanaObject::caller();
+        if (($caller['class'] !== 'Workspace')&&($caller['class'] !== 'Project'))
             throw new Exception("Only a Workspace object can create a new Project");
 
-        //If the name is "" but an ID is provided, get the Project's information from the Asana API and assign it to the self.
-        if ((empty($name))&&($id)&&(!$workspaceID)){
-            $interface = $this->getAPI();
-            $projRequest = $interface->as_get("/projects/".$id);
-            $q = json_decode($projRequest['contents']);
-            if (isset($q->data)){
-                $this->name = $q->data->name;
-                $this->id = $q->data->id;
-            } else {
-                throw new Exception("Asana Project Details request failed");
-            }
-        //If the name and workspace are given but no ID is provided, create a new Project via the Asana API and assign its attributes to the self.
-        } else if ((!empty($name))&&(!$id)&&($workspaceID)){
-            $interface = $this->getAPI();
-            $projRequest = $interface->as_post("/projects",json_encode(array(
-                "data"=>array(
-                    "workspace"=>$workspaceID,
-                    "name"=>$name
-                )
-            )));
-            $q = json_decode($projRequest['contents']);
-            if (isset($q->data)){
-                $this->name = $q->data->name;
-                $this->id = $q->data->id;
-            } else {
-                throw new Exception("Asana Project Creation request failed");
-            }
-            //Add functionality to save new project in tool database.
-            
-            
-            
-        //If both a name and ID are given, assign them both to self.
-        } else if ((!empty($name))&&($id)){
-            $this->id = $id;
-            $this->name = $name;
-        //If neither an ID nor a name are given, throw an exception: "Either a name or an ID must be provided to the Project constructor."
+        $interface = new Asana_API(\API\All\Users::asana_api_key());
+        $projRequest = $interface->as_post("/projects",json_encode(array(
+            "data"=>array(
+                "workspace"=>$workspaceID,
+                "name"=>$name
+            )
+        )));
+        $q = json_decode($projRequest['contents']);
+        if (isset($q->data)){
+            return new Project($q->data->name,$q->data->id);
         } else {
-            throw new Exception("The Project constructor accepts only the following combinations: name & id, name & workspace, or id");
+            throw new Exception("Asana Project Creation request failed");
+        }
+    }
+    
+    public function __construct($name,$id){
+        $this->name = $name;
+        $this->id = $id;
+    }
+    public function getTasks(){
+        $interface = $this->getAPI();
+        $taskRequest = $interface->as_get("/projects/".$this->id."/tasks");
+        $d = json_decode($taskRequest['contents']);
+        if (isset($d->data)){
+            $this->tasks = $d->data;
+            return $this->tasks;
+        } else {
+            throw new Exception("The task search request failed");
         }
     }
 }
