@@ -65,9 +65,12 @@ namespace UI {
             }
             return ob_get_clean();
         }
-        public function client_options($dept,$target = 0,$month){
+        public function client_options($dept,$target = 0,$month = ""){
             ob_start();
-            $api = new \API\All\Clients(array("department"=>$dept,"month"=>$month));
+            if (!empty($month))
+                $api = new \API\All\Clients(array("department"=>$dept,"month"=>$month));
+            else
+                $api = new \API\All\Clients(array("department"=>$dept));
             $model = $api->search();
             if ($model->status == "success"){
                 foreach ($model->data as $client){

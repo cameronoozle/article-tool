@@ -90,11 +90,13 @@ class Workspace extends AsanaObject {
             }
         }
     }
-    public function createTask($name,Assignee $assignee,$notes){
+    public function createTask($name,Assignee $assignee,$notes,$dueDate){
         //Create a new task object assigned to self.
-        $task = Task::create($name,$this->id,$assignee,$notes);
+        $task = Task::create($name,$this->id,$assignee,$notes,$dueDate);
+
         //Add the new task object to $this->tasks.
         array_push($this->tasks,$task);
+
         //Return the new task.
         return $task;
     }

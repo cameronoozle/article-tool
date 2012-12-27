@@ -54,6 +54,7 @@ class Task extends AsanaObject {
             foreach ($d->projects as $proj){
                 array_push($task->projects, new Project($proj->name,$proj->id));
             }
+            return $task;
         } else {
             throw new Exception("Task Creation Request failed");
         }

@@ -3,7 +3,7 @@
     <td class='project'>
         <input type='hidden' name='asana_project_id' value='<?= $data->asana_project_id; ?>'/>
         <select name='project_id'><?= $this->project_options($data->project_id,4); ?></select></td>
-    <td class='client'><select name='client_id'><?= $this->client_options("Content",$data->client_id,$this->parameters['month']); ?></select></td>
+    <td class='client'><select name='client_id'><?= $this->client_options("Content",$data->client_id); ?></select></td>
     <td class='keyword' autocomplete='true' sloppy='true' contentEditable='true' autocomplete='true' name='keyword'><?= $data->keyword; ?></td>
     <td class='target_url' autocomplete='true' sloppy='true' contentEditable='true' autocomplete='true' name='target_url'><?= $data->target_url; ?></td>
     <td class='content_network'><select name='content_network_id'><?= $this->content_network_options($data->content_network_id); ?></select></td>
