@@ -497,7 +497,7 @@ namespace API\Content {
         }
         public function change_status_callback(){
             $db = $this->get_db();
-            $query = "INSERT INTO article_status_changes (article_id,article_status_id) VALUES ('".$db->esc($this->parameters['article_id'])."','".$db->esc($this->parameters['article_status_id'])."')";
+            $query = "INSERT INTO article_status_changes (article_id,article_status_id,written) VALUES ('".$db->esc($this->parameters['article_id'])."','".$db->esc($this->parameters['article_status_id'])."',".((isset($this->parameters['written']))&&($this->parameters['written'] == "1") ? "1" : "0").")";
             $db->query($query);
             $query = "SELECT * FROM article_status_changes ".
             "WHERE article_id = ".$db->esc($this->parameters['article_id'])." AND status_change_date = ".

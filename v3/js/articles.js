@@ -96,11 +96,21 @@ var articles = {
             _self.orderBy = $(this).attr("rel");
             _self.loadSnippets(true);
         });
-        $(document).on("change","select[name='article_status_id']",function(){
-            var article_glob = $(this).closest("tr").serializeToJSON()[0];
+        this.changeStatus = function(el){
+            var article_glob = $(el).closest("tr").serializeToJSON()[0];
+            console.log(article_glob);
+            if (!article_glob.written) article_glob.written = "0";
             _self.model.getData(root+"/api/Content/Articles/change_status",function(data){
                 console.log("Called Change Status API Method: ",data);
             },article_glob);
+        }
+        
+        $(document).on("change","select[name='article_status_id']",function(){
+            _self.changeStatus(this);
+        });
+        
+        $(document).on("click","input[name='written']",function(){
+            _self.changeStatus(this);
         });
         
         var autosave = new Autosave();
