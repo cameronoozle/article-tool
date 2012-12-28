@@ -96,6 +96,13 @@ var articles = {
             _self.orderBy = $(this).attr("rel");
             _self.loadSnippets(true);
         });
+        $(document).on("change","select[name='article_status_id']",function(){
+            var article_glob = $(this).closest("tr").serializeToJSON()[0];
+            _self.model.getData(root+"/api/Content/Articles/change_status",function(data){
+                console.log("Called Change Status API Method: ",data);
+            },article_glob);
+        });
+        
         var autosave = new Autosave();
     },
     Model: function(){
