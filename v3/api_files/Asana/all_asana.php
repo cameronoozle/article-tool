@@ -1,6 +1,5 @@
+<?php if (!isset($_SESSION)) session_start(); ?>
 <pre><?php
-if (!isset($_SESSION)) session_start();
-//header("Content-type: text/plain");
 include('../all_api.php');
 $arr = array(
     "asanaobject",
@@ -13,10 +12,9 @@ $arr = array(
 
 foreach ($arr as $file)
     include($file."_class.php");
+print_r(get_declared_classes());
+$asana = new Asana(true);
 
-$asana = new Asana();
-$workspace = $asana->getWorkspace(314316658137);
-
-print_r($workspace->createTask("The World's Greatest",$workspace->getAssignee(273287852136),"Knowing you were not prepared, knowing you would likely die - Mommy was very, very bad.","2015-06-16"));
+print_r($asana->getWorkspace(626921128718,true));
 //->getTask(2360067917651)
 ?></pre>

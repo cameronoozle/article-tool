@@ -2,7 +2,8 @@
 class Workspace extends AsanaObject {
     public $name,$id,$users,$projects;
     private $targ_proj_id, $tasks, $targ_task_id;
-    public function __construct($name,$id){
+
+    public function __construct($name,$id,$refresh = false){
         //Assign my name and ID.
         $this->name = $name;
         $this->id = $id;
@@ -15,18 +16,44 @@ class Workspace extends AsanaObject {
         //Get a list of users and assign it to $this->users;
         $userRequest = $interface->as_get("/workspaces/".$this->id."/users");
         $this->users = array_map(array($this,"assigneeMap"),json_decode($userRequest['contents'])->data);
-
+        
         //Get a list of projects and assign it to $this->projects;
         $projRequest = $interface->as_get("/workspaces/".$this->id."/projects");
         $this->projects = array_map(array($this,"projMap"),json_decode($projRequest['contents'])->data);
         $this->tasks = array();
+        if ($refresh){
+            $this->refreshTeamMembers();
+            $this->refreshProjects();
+        }
     }
+
+    private function refreshTeamMembers(){
+        $db = $this->getDB();
+        $query = "INSERT INTO team_members (asana_team_member_id,team_member) VALUES ";
+        foreach ($this->users as $user){
+            $query .= "(".$user->id.",'".$user->name."'),";
+        }
+        $db->query(substr_replace($query,"",-1,1)." ON DUPLICATE KEY UPDATE team_member = VALUES (team_member)");
+    }
+    
+    private function refreshProjects(){
+        $db = $this->getDB();
+        $query = "INSERT INTO projects (asana_project_id,project,workspace_id) ";
+        $selects = array();
+        foreach ($this->projects as $project){
+            array_push($selects,"SELECT ".$project->id.",'".$project->name."',workspace_id FROM workspaces WHERE asana_workspace_id = ".$this->id." LIMIT 1");
+        }
+        $db->query($query.implode(" UNION ",$selects)." ON DUPLICATE KEY UPDATE project = VALUES (project), workspace_id = VALUES (workspace_id)");
+    }
+    
     private function projMap($obj){
         return new Project($obj->name,$obj->id);
     }
+
     private function assigneeMap($obj){
         return new Assignee($obj->id,$obj->name);
     }
+
     private function projFilter($obj){
         return ($obj->id == $this->targ_proj_id);
     }
@@ -43,12 +70,14 @@ class Workspace extends AsanaObject {
         else
             return null;
     }
+
     public function createProject($projectName){
         //Use the Asana interface to create a new project, turn it into a project object and return it.
         $project = Project::create($projectName,$this->id);
         array_push($this->projects,$project);
         return $project;
     }
+
     private function filter($obj){
         return $obj->id == $this->targ_task_id;
     }
@@ -68,6 +97,7 @@ class Workspace extends AsanaObject {
         //return it.
         return $task;
     }
+
     public function addTask(Task $task){
         //Create a new task that is a perfect copy of the one provided.
         $copy = Task::create($task->name,$this->id,$task->assignee,$task->notes);
@@ -77,6 +107,7 @@ class Workspace extends AsanaObject {
         //Update the task object to make it clear that it has been deleted.
         $task->update("Deleted",null,"");
     }
+
     public function deleteTask($taskID){
         $this->targ_task_id = $taskID;
         //Delete the task from the database.
@@ -90,6 +121,7 @@ class Workspace extends AsanaObject {
             }
         }
     }
+
     public function createTask($name,Assignee $assignee,$notes,$dueDate){
         //Create a new task object assigned to self.
         $task = Task::create($name,$this->id,$assignee,$notes,$dueDate);
@@ -100,9 +132,11 @@ class Workspace extends AsanaObject {
         //Return the new task.
         return $task;
     }
+
     private function userFilter($obj){
         return $obj->id == $this->targ_user_id;
     }
+
     public function getAssignee($assigneeID){
         //Filter $this->users and return the user with the matching ID.
         $this->targ_user_id = $assigneeID;

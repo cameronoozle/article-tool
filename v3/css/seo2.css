@@ -209,6 +209,9 @@ pre {
 #articles_snippet .notes {
 	width:110px;
 }
+pre[name='notes'] {
+    min-height:1em;
+} 
 #articles_snippet .assign_td {
 	width:110px;
 }
