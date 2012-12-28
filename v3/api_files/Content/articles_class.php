@@ -490,6 +490,20 @@ namespace API\Content {
             $d = $this->get_db()->query("UPDATE articles SET notes = (SELECT notes FROM tasks WHERE tasks.task_id = articles.task_id)");
             return $this->success(array("Articles successfully refreshed"));
         }
+        public function change_status(){
+            $reqs = new \Required_Parameters(array("article_id"=>\Types::Int,"article_status_id"=>\Types::Int));
+            return $this->validate_output($reqs,false,new \Permission(1,"Content"),array($this,"change_status_callback"));
+        }
+        public function change_status_callback(){
+            $db = $this->get_db();
+            $query = "INSERT INTO article_status_changes (article_id,article_status_id) VALUES ('".$db->esc($this->parameters['article_id'])."','".$db->esc($this->parameters['article_status_id'])."')";
+            $db->query($query);
+            $query = "SELECT * FROM article_status_changes ".
+            "WHERE article_id = ".$db->esc($this->parameters['article_id'])." AND status_change_date = ".
+            "(SELECT MAX(status_change_date) FROM article_status_changes WHERE article_id = ".$db->esc($this->parameters['article_id']).")";
+            $d = $db->query($query);
+            return $this->success($d['rows']);
+        }
     }
 }
 ?>
