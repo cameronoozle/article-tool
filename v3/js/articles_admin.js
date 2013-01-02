@@ -45,11 +45,18 @@ var articles = {
 
         //The main handler for all our snippet loading.
         this.loadSnippets = function(refresh){
+            console.log(refresh);
             //Refresh means "we're starting from scratch - empty the table completely and start the paging over from zero."
             if (refresh){
+                //Start over from zero.
+                _self.num_rows = 0;
+                _self.snippets = [];
                 //Prevent any rogue snippets from coming through the pipeline.
                 window.clearTimeout(_self.timeout);
                 //The parameters for the snippet request we'll be sending to the server.
+    
+                console.log(_self);
+
                 var dObj = {
                     from:$("#fromYear").val()+"-"+$("#fromMonth").val()+"-01 00:00:00",
                     to:$("#toYear").val()+"-"+$("#toMonth").val()+"-01 00:00:00",
@@ -60,9 +67,6 @@ var articles = {
                 if ($("#clientSelect").val() !== ""){
                     dObj.client_id = $("#clientSelect").val();
                 }
-                //Start over from zero.
-                _self.num_rows = 0;
-                _self.snippets = [];
                 
                 //We'll first get the statistics for the user's selection. We'll load snippets based on those
                 //statistics.
@@ -98,6 +102,7 @@ var articles = {
         }
 
         this.loadCallback = function(refresh){
+            console.log(_self.snippets);
             //If the user has selected a client, allow them to copy and import keywords.
             if ($("#clientSelect").val() !== "")
                 $(".copy_link, #importKeywords").show();
@@ -117,7 +122,7 @@ var articles = {
                 qobj.client_id = $("#clientSelect").val()
             //Serialize our object to make ready the request.
             qstr = jQuery.param(qobj);
-            
+            console.log(qobj,qstr);
             //Execute the request.
             _self.model.getSnippet(
                 //The URL:
@@ -291,6 +296,7 @@ var articles = {
         
         //Make a server call to copy an articles roadmap for a client from one month to another.
         this.copy = function(params,refresh){
+            console.log(params);
             $.ajax({
                 url: root+"/api/Content/Articles/copy",
                 data: params,
@@ -314,7 +320,8 @@ var articles = {
             //Set up the parameters - who's the client and where are we coping the roadmap to and from?
             var params = {
                 client_id: $("#clientSelect").val(),
-                from: $("#year").val()+"-"+$("#month").val()+"-01 00:00:00",
+                from_start: $("#fromYear").val()+"-"+$("#fromMonth").val()+"-01 00:00:00",
+                from_end: $("#toYear").val()+"-"+$("#toMonth").val()+"-01 00:00:00",
                 to: $("#copytoyear").val()+"-"+$("#copytomonth").val()+"-01 00:00:00"
             };
             //Execute the request.
@@ -324,8 +331,9 @@ var articles = {
             //Set up the parameters - who's the client and where are we coping the roadmap to and from?
             var params = {
                 client_id: $("#clientSelect").val(),
-                to: $("#year").val()+"-"+$("#month").val()+"-01 00:00:00",
-                from: $("#copyfromyear").val()+"-"+$("#copyfrommonth").val()+"-01 00:00:00"
+                to: $("#fromYear").val()+"-"+$("#fromMonth").val()+"-01 00:00:00",
+                from_start: $("#copyfromyear").val()+"-"+$("#copyfrommonth").val()+"-01 00:00:00",
+                from_end: $("#copyfromyear").val()+"-"+$("#copyfrommonth").val()+"-01 00:00:00"
             };
             //Execute the request.
             _self.copy(params,true);

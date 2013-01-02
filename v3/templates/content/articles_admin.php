@@ -190,7 +190,7 @@
 	    <div class='copydiv'>
 		<h3>Copy</h3>
 		<p>Copy To: <select id='copytomonth'><?= $this->month_options();  ?></select> Year: <select id='copytoyear'><?= $this->year_options(); ?></select><button class='copytobutton'>Go!</button></p>
-		<p>Copy From: <select id='copyfrommonth'><?= $this->month_options();  ?></select> Year: <select id='copyfromyear'><?= $this->year_options(); ?></select><button class='copyfrombutton'>Go!</button></p>
+<!--		<p>Copy From: <select id='copyfrommonth'><?= $this->month_options();  ?></select> Year: <select id='copyfromyear'><?= $this->year_options(); ?></select><button class='copyfrombutton'>Go!</button></p>-->
 		<p class='copyoutput'></p>
 	    </div>
 	</div>

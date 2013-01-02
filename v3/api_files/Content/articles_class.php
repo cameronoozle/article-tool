@@ -68,7 +68,7 @@ namespace API\Content {
         
         //Copies all articles from one month to another.
         public function copy(){
-            $reqs = new \Required_Parameters(array(),array("from"=>\Types::Datetime,"to"=>\Types::Datetime,"client_id"=>\Types::Int));
+            $reqs = new \Required_Parameters(array(),array("from_start"=>\Types::Datetime,"from_end"=>\Types::Datetime,"to"=>\Types::Datetime,"client_id"=>\Types::Int));
             return $this->validate_output($reqs,false,new \Permission(2,"Content"),array($this,"copy_callback"));
         }
         public function copy_callback(){
@@ -78,7 +78,7 @@ namespace API\Content {
             "(client_id,content_network_id,keyword_id,project_id,target_url,outsource,month,word_count,cost) ".
             "SELECT '".$db->esc($this->parameters['client_id'])."',content_network_id,keyword_id,project_id,".
             "target_url,outsource,'".$db->esc($this->parameters['to'])."',word_count,cost ".
-            "FROM articles WHERE month = '".$db->esc($this->parameters['from'])."' AND client_id='".$db->esc($this->parameters['client_id'])."'";
+            "FROM articles WHERE month BETWEEN '".$db->esc($this->parameters['from_start'])."' AND '".$db->esc($this->parameters['from_end'])."' AND client_id='".$db->esc($this->parameters['client_id'])."'";
             $db->query($query);
             return $this->success(array("Month successfully copied."));
         }
