@@ -16,12 +16,13 @@
 <div id='bigData'>
 	<p id='selectors'>
 	    <span class='left'>
-		Month: <select id='month'><?= $this->month_options();  ?></select>
-		Year: <select id='year'><?= $this->year_options(); ?></select>
+		From: <select id='fromMonth'><?= $this->month_options(); ?></select><select id='fromYear'><?= $this->year_options(); ?></select>
+		To: <select id='toMonth'><?= $this->month_options(); ?></select><select id='toYear'><?= $this->year_options(); ?></select>
 		Client: <select id='clientSelect'><option></option><?= $this->client_options("Content",0,$this->parameters['month']); ?></select>
+		<span class='selectorOutput'></span>
 	    </span>
 	    <span class='right'>
-		<span style='display:inline-block;position:relative;width:220px;height:19px;'>
+		<span class='loaderHolder' style='display:inline-block;position:relative;width:220px;height:19px;'>
         	    <img src='<?= HTTP_ROOT; ?>/images/ajax-loader.gif' id='ajaxLoading' style='position:absolute;left:0px;top:0px;'/>
 		</span>
 		<span class='copy_link'>Copy</span>

@@ -5,6 +5,7 @@ namespace API\Content {
         private $join_fields;
         private $workspace_id;
         private $dupkeys;
+
         //Reconcile_tasks marks all tasks that are complete in Asana as complete in the tool.
         public function reconcile_tasks() {
             set_time_limit(120);
@@ -257,15 +258,23 @@ namespace API\Content {
             return $this->search_callback2(false);
         }
         public function search_admin(){
-            $reqs = new \Required_Parameters(array(),array("month"=>\Types::Datetime));
+            $reqs = new \Required_Parameters(array("from"=>\Types::Datetime,"to"=>\Types::Datetime,"month"=>\Types::Datetime));
             return $this->validate_output($reqs,false,new \Permission(2,"Content"),array($this,"search_admin_callback"));
         }
         public function search_admin_callback(){
             return $this->search_callback2(true);
-        }        
+        }
         public function search_callback2($admin){
             $db = $this->get_db();
-            $wheres = array("month = '".$db->esc($this->parameters['month'])."'");
+
+            //Set up the 'month' part of the where clause.
+            if ((isset($this->parameters['to']))&&(isset($this->parameters['from'])))
+                $wheres = array("month BETWEEN '".$db->esc($this->parameters['from'])."' AND '".$db->esc($this->parameters['to'])."'");
+            else if (isset($this->parameters['month']))
+                $wheres = array("month = '".$db->esc($this->parameters['month'])."'");
+            else
+                return $this->error(array("Parameters must include either 'from' and 'to' parameters or a single 'month' parameter"));
+            
             $opts = array("task","project","keyword","content_network","team_member","client");
             foreach ($opts as $opt){
                 if ((isset($this->parameters[$opt."_id"]))&&(is_numeric($this->parameters[$opt."_id"])))
@@ -361,17 +370,27 @@ namespace API\Content {
             }
         }
         public function stats(){
-            $reqs = new \Required_Parameters(array(),array("month"=>\Types::Datetime,"admin"=>\Types::Bool));
+            $reqs = new \Required_Parameters(array("month"=>\Types::Datetime,"from"=>\Types::Datetime,"to"=>\Types::Datetime),array("admin"=>\Types::Bool));
             return $this->validate_output($reqs,false,new \Permission(1,"Content"),array($this,"stats_callback"));
         }
         public function stats_callback(){
             $db = $this->get_db();
             $opts = array("client_id"=>\Types::Int,"month"=>\Types::Datetime);
             $wheres = array();
-            foreach ($this->parameters as $name=>$value){
-                if ((isset($opts[$name]))&&\Types::matches_type($value,$opts[$name]))
-                    array_push($wheres,$name." = '".$db->esc($value)."'");
-            }
+            
+            //Set up the month parameters.
+            if ((isset($this->parameters['from']))&&(isset($this->parameters['to'])))
+                array_push($wheres,"month BETWEEN '".$db->esc($this->parameters['from'])."' AND '".$db->esc($this->parameters['to'])."'");
+            else if (isset($this->parameters['month']))
+                array_push($wheres,"month = '".$db->esc($this->parameters['month'])."'");
+            else
+                return $this->error(array("Parameters must include either 'from' and 'to' parameters or a single 'month' parameter"));
+            
+            //Include the client ID in the where clause.
+            if (isset($this->parameters['client_id']))
+                array_push($wheres,"client_id = '".$db->esc($this->parameters['client_id'])."'");
+
+            //Only select stats for clients who are utilizing content as a service.
             array_push($wheres,"service_id=2");
             if ($this->parameters['admin'] == 0)
                 array_push($wheres,"project_id != 0");

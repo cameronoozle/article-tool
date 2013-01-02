@@ -41,7 +41,6 @@ function Autosave(){
 	
 	//Cruises through each row that contains data and saves its contents.
 	this.save = function(){
-		console.log("saving");
 		self.saveTags();
 		var tosave = $("tr[data='true']");
 		if (tosave.length > 0){
@@ -65,7 +64,6 @@ function Autosave(){
 				data:JSON.stringify(tosend),
 				contentType:'application/json',
 				success:function(data){
-					console.log(data);
 					if (data.status == "success"){
 						var rows = (data.data.rows ? data.data.rows : data.data);
 						for (i=0;i<rows.length;i++){
@@ -79,7 +77,6 @@ function Autosave(){
 					}
 				},
 				complete:function(a,b,c){
-					console.log(a,b);
 					$("#saveOutput").html("Autosave completed.");
 					$("#saveOutput").fadeIn(2000,function(){$("#saveOutput").fadeOut(2000)});
 				}
@@ -122,7 +119,6 @@ function Autosave(){
 		self.toggleAutosave(this);
 	});
 	$(document).on('change click keyup',"input,td[contentEditable='true'][sloppy!='true'],select,textarea",function(){
-		console.log("click!");
 		self.dataTrue(this);
 	});
 	$(document).on('blur',"td[sloppy='true']",function(){

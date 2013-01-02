@@ -1,4 +1,5 @@
 <?php
+namespace Asana {
 class Task extends AsanaObject {
     public $id, $name, $assignee, $notes, $projects, $dueDate;
     
@@ -138,5 +139,6 @@ class Task extends AsanaObject {
         //Return self to allow chaining.
         return $this;
     }
+}
 }
 ?>

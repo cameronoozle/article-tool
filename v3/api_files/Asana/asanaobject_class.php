@@ -1,4 +1,5 @@
 <?php
+namespace Asana {
 class AsanaObject {
     protected $api;
     protected function getAPI(){
@@ -16,5 +17,6 @@ class AsanaObject {
         $backtrace = debug_backtrace();
         return $backtrace[2];
     }
+}
 }
 ?>

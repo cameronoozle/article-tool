@@ -154,7 +154,7 @@ class Endpoint {
 		if ($valid === true){
 			return call_user_func($cb);
 		} else {
-			return $this->error(array("errors"=>$valid,"parameters"=>$this->parameters,"x"=>file_get_contents("php://input")));
+			return $this->error($valid);
 		}
 	}
 	

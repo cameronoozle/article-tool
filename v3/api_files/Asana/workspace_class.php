@@ -1,4 +1,5 @@
 <?php
+namespace Asana {
 class Workspace extends AsanaObject {
     public $name,$id,$users,$projects;
     private $targ_proj_id, $tasks, $targ_task_id;
@@ -28,22 +29,30 @@ class Workspace extends AsanaObject {
     }
 
     private function refreshTeamMembers(){
-        $db = $this->getDB();
+        foreach ($this->users as $user)
+            $user->refresh();
+        //This is what a less appropriately object-oriented method would look like. This particular method would require a single query on
+        //the workspace level rather than a ton of small queries from the individual user objects.
+/*        $db = $this->getDB();
         $query = "INSERT INTO team_members (asana_team_member_id,team_member) VALUES ";
         foreach ($this->users as $user){
             $query .= "(".$user->id.",'".$user->name."'),";
         }
-        $db->query(substr_replace($query,"",-1,1)." ON DUPLICATE KEY UPDATE team_member = VALUES (team_member)");
+        $db->query(substr_replace($query,"",-1,1)." ON DUPLICATE KEY UPDATE team_member = VALUES (team_member)");*/
     }
     
     private function refreshProjects(){
-        $db = $this->getDB();
+        foreach ($this->projects as $project)
+            $project->refresh();
+        //This is what a less appropriately object-oriented method would look like. This particular method would require a single query on
+        //the workspace level rather than a ton of small queries from the individual project objects.
+/*        $db = $this->getDB();
         $query = "INSERT INTO projects (asana_project_id,project,workspace_id) ";
         $selects = array();
         foreach ($this->projects as $project){
             array_push($selects,"SELECT ".$project->id.",'".$project->name."',workspace_id FROM workspaces WHERE asana_workspace_id = ".$this->id." LIMIT 1");
         }
-        $db->query($query.implode(" UNION ",$selects)." ON DUPLICATE KEY UPDATE project = VALUES (project), workspace_id = VALUES (workspace_id)");
+        $db->query($query.implode(" UNION ",$selects)." ON DUPLICATE KEY UPDATE project = VALUES (project), workspace_id = VALUES (workspace_id)");*/
     }
     
     private function projMap($obj){
@@ -149,5 +158,6 @@ class Workspace extends AsanaObject {
             return null;
         }
     }
+}
 }
 ?>

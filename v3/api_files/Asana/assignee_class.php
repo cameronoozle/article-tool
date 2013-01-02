@@ -1,4 +1,5 @@
 <?php
+namespace Asana {
 class Assignee extends AsanaObject {
     public $id, $name, $tasks;
     
@@ -24,9 +25,19 @@ class Assignee extends AsanaObject {
         }
     }
     
-    public function __construct($id,$name = ""){
+    public function __construct($id,$name = "",$refresh=false){
         $this->id = $id;
-        $this->name = $name;        
+        $this->name = $name;
+        if ($refresh)
+            $this->refresh();
     }
+    
+    public function refresh(){
+        $db = $this->getDB();
+        $query = "INSERT INTO as-users (id,name) VALUES (".$db->esc($this->id).",'".$db->esc($this->name)."') ON DUPLICATE KEY UPDATE name=VALUES(name)";
+        $db->query($query);
+    }
+    
+}
 }
 ?>

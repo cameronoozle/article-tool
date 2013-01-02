@@ -1,4 +1,5 @@
 <?php
+namespace Asana {
 class Project extends AsanaObject {
     public $id,$name,$tasks;
     
@@ -46,7 +47,7 @@ class Project extends AsanaObject {
         if ($refresh)
             $this->refresh();
     }
-    private function refresh(){
+    public function refresh(){
         $db = $this->getDB();
         $query = "INSERT INTO projects (asana_project_id,project) VALUES (".$db->esc($this->id).",'".$db->esc($this->name)."') ".
         "ON DUPLICATE KEY UPDATE project = VALUES (project)";
@@ -64,5 +65,6 @@ class Project extends AsanaObject {
             throw new Exception("The task search request failed");
         }
     }
+}
 }
 ?>

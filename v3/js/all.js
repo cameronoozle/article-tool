@@ -1,3 +1,5 @@
+//In reality, this object only handles the report-a-bug module.
+//Handles opening and closing the lightbox and submitting the report-a-bug form.
 var oozle = {
     Controller:function(){
         var _self = this;

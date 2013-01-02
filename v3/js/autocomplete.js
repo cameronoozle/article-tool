@@ -84,10 +84,11 @@ function Autocomplete(){
 		$("#output").html("");
 		self.hideOutput();
 		if ($(this).attr("autocomplete") == "true")
-			self.focusedInput = this;		
+			self.focusedInput = this;
+		console.dir(self);
 	});
 	
-	$(document).on('keydown',"input[autocomplete='true'], td[autocomplete='true']",function(e){
+	$(document).on('keyup',"input[autocomplete='true'], td[autocomplete='true']",function(e){
 		var navCodes = [9,13,37,38,39,40];
 		var el = this;
 		if ((navCodes.indexOf(e.keyCode) == -1)&&(!this.navigating)){
@@ -111,7 +112,7 @@ function Autocomplete(){
 						}
 						self.focusedLI = undefined;
 						$(".autocompleteResults").css(
-							{"width":$(el).outerWidth(),
+							{"min-width":$(el).outerWidth(),
 							"left":$(el).offset().left,
 							"top":$(el).offset().top + $(el).outerHeight(),
 							"display":"inline-block"}
@@ -126,7 +127,6 @@ function Autocomplete(){
 	
 	$(document).on('keydown',"input[autocomplete='true'], td[autocomplete='true']",function(e){
 		if (!this.navigating){
-//			console.log(e.keyCode);
 			self.viableResults.length = 0;
 			switch (e.keyCode){
 				case 40: //Down key.
@@ -173,7 +173,6 @@ function Autocomplete(){
 		self.viableResults.length = 0;
 	});
 	$(document).on("blur","input,td",function(e){
-//		console.log(e);
 //		if (!$(e.target).hasClass("autocompleteResult"))
 //			$(".autocompleteResults").hide();
 	});
