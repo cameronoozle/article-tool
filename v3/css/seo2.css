@@ -230,6 +230,9 @@ pre[name='notes'] {
 #articles_admin_snippet {
 	width:1215px;
 }
+#articles_admin_snippet .month {
+    width:40px;
+}
 #articles_admin_snippet .written {
 	width:15px;
 }

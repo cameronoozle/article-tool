@@ -1,0 +1,71 @@
+The breakdown on what actually happens when you refresh the full database from Asana:
+
+Get all of the workspaces. Store them in the database.
+Foreach Database:
+    Get all of the projects. Store them in the database.
+    Foreach project:
+        Get all of the tasks. Store them in the database.
+        //Problem! If we get "all" of the tasks for the project, that is search for tasks based on project, we only get a name and an ID.
+        //We need more info, such as due_on and notes. Otherwise the refresh essentially does us no good. We can't do a details request for
+        //every single task, because it would simply take way too long and we'd have to spread it out over more than an hour because it would
+        //cost WAY more than 100 requests, which is all we can afford in an hour. The other way is to do it like this:
+        
+Get all of the workspaces. Store them in the database.
+Foreach workspace:
+    Get all of the tasks from the database.
+    Request the details for all pulled tasks. Update the tasks in the database based on the received information about that task.
+    
+We can actually do this quite easily already using the architecture as thus far developed.
+All we would need to do is have the Workspace say, "SELECT * FROM tasks", and for each result, create a task object with refresh set to true.
+
+Problem! If we have the task object handle the refresh, that means a separate query for every task, which will be a number in the thousands.
+Thousands of queries = bad news.
+
+But if we have the workspace object just bypass the task objects and handle the requests and the database entries on its own,
+we lose the modularity.
+
+The reason we have this problem is that Asana isn't going to notify us every time a task is updated.
+
+So these are our two options:
+
+Have the workspace object pull task IDs from the database, then call Task::get($id,true) for every single one. TONS of DB Queries.
+
+Have the workspace object pull task IDs from the database, then make the get request to Asana itself for every single one, and update all of the
+tasks in a single query. ONE DB Query, but it's not modular.
+
+The biggest problem with this whole process is that we're already up to 732 tasks, so I'm going to bet that at least some, if not most, of those
+requests are failing every day. Asana is not going to support our serious updating habit. What to do?
+
+I think that the only real alternative here is to create our own Asana system. Which is highly inefficient. And would take months.
+
+Do we want to reorganize the way we're doing things with Sugar as well?
+
+In Sugar, the top-level object is the Account (which I've called the client, though it seems reasonable to want to use Sugar's terminology)
+The Account contains * service, 
+
+Okay, so maybe the rate limit thing isn't as big of a deal. We could do it like this:
+
+$asana = new Asana(\API\All\Users::asana_api_key());
+$asana->refresh();
+
+Where refresh looks like this:
+foreach ($this->workspaces as $workspace){
+    $ws = $this->getWorkspace($workspace->id);
+    $ws->refreshTasks();
+    $ws->refreshProjects();
+}
+
+Where refreshTasks looks like this:
+$d = $this->getDB()->query("SELECT asana_task_id FROM tasks LEFT JOIN workspaces WHERE asana_workspace_id = ".$this->id);
+foreach ($d['rows'] as $row){
+    $task = Task::get($row['asana_task_id'],true);
+    usleep(500);
+}
+
+and refreshProjects looks like this:
+foreach ($this->projects as $project){
+    $project = Project::get($project->id,true);
+    usleep(500);
+}
+
+

@@ -1,0 +1,109 @@
+Asana
+
+    as-tasks
+        id bigint primary
+        name varchar (100)
+        notes varchar (200)
+        assignee_id bigint
+        due_on datetime
+        parent_id bigint
+        workspace_id
+        
+    as-task_project_pairings
+        id int primary ai
+        task_id bigint
+        project_id bigint
+        
+    as-followers
+        id int primary ai
+        user_id bigint
+        task_id bigint
+        
+    as-users
+        id bigint primary
+        name varchar (100)
+    
+    as-workspaces
+        id bigint primary
+        name varchar (100)
+    
+    as-projects
+        id bigint primary
+        name varchar (100)
+
+Sugar
+
+    su-accounts
+        id varchar (100) primary
+        name varchar(100)
+    
+    su-services
+        id int primary ai
+        name varchar (100) unique
+    
+    su-account_service_pairings
+        id int primary ai
+        account_id varchar (100) [unique with service_id]
+        service_id int [unique with account_id]
+    
+    su-budgets
+        id int primary ai
+        account_id varchar (100)
+        month datetime
+        budget float
+        seo_percentage float
+    
+Oozle
+
+    oo-departments
+        id int primary ai
+        name varchar (100) [unique]
+    
+    oo-modules
+        id int primary ai
+        name varchar (100) [unique with department_id]
+        department_id int [unique with name]
+        pay_grade_id int
+    
+    oo-permissions
+        id int primary ai
+        user_id int
+        department_id int
+        pay_grade_id int
+    
+    oo-pay_grades
+        id int primary ai
+        description varchar (100)
+
+    oo-users
+        id bigint primary                       --Actually the Asana ID
+        email_address varchar (100) [unique]
+        full_name varchar (100)
+        password varchar (40)
+        salt varchar (20)
+        api_key varchar (100)
+        verification_code varchar (100)
+        verified tinyint
+        reset_pw_code varchar (100)
+    
+    oo-ar-articles
+        id int primary ai
+        task_id bigint [unique]
+        account_id varchar (100)
+        keyword varchar (100)
+        month datetime
+        content_network_id int
+        target_url varchar (100)
+        post_url varchar (100)
+        word_count int
+        cost float
+        status_id int
+        date_last_updated datetime
+        
+    oo-ar-content_networks
+        id int primary ai
+        name varchar (100) [unique]
+        
+    oo-ar-statuses
+        id int primary ai
+        name varchar (100) [unique]

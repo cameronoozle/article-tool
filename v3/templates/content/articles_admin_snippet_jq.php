@@ -1,5 +1,6 @@
 <tr>
     <td class='article_id'><input type='text' readonly='true' name='article_id' value=''/></td>
+    <td class='month'></td>
     <td class='project'><select name='project_id'><?= $this->project_options(0,4); ?></select></td>
     <td class='client'><select name='client_id'><?= $this->client_options("Content",0); ?></select></td>
     <td class='keyword' autocomplete='true' sloppy='true' contentEditable='true' autocomplete='true' name='keyword'></td>

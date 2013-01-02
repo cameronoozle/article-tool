@@ -297,7 +297,7 @@ namespace API\Content {
             array_push($wheres,"service_id = 2");
             $joins = array("client","content_network","keyword","project","task");
             $query = "SELECT *,article_status_changes.article_status_id,clients.client,articles.client_id,articles.notes,keywords.keyword FROM articles ";
-            $orders = array("article_id","project","client","keyword","target_url","content_network","post_url","word_count","article_status_id","notes","cost");
+            $orders = array("article_id","project","client","keywords.keyword","target_url","content_network","post_url","word_count","article_status_id","notes","cost","month");
             foreach ($joins as $join) $query .= "LEFT JOIN ".$join."s USING (".$join."_id) ";
             $query .= "LEFT JOIN team_members USING (asana_team_member_id) LEFT JOIN client_service_pairings USING (client_id) ";
             $query .= "LEFT JOIN (SELECT * FROM article_status_changes WHERE status_change_date = (SELECT MAX(status_change_date) FROM article_status_changes sub WHERE sub.article_id = article_status_changes.article_id)) article_status_changes USING (article_id) ";

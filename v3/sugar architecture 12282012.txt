@@ -1,0 +1,11 @@
+<?php
+class Account extends SugarObject {
+    private $id, $name, $services;
+}
+class Service extends SugarObject {
+    private $id, $name;
+}
+class Budget extends SugarObject {
+    private $id, $month, $budget, $seo_amount;
+}
+?>

@@ -68,24 +68,27 @@ var articles = {
                 //statistics.
                 _self.model.getData(window.root+"/api/Content/Articles/stats",function(data){
                     console.log(data);
-                    
-                    //Display the statistics using a template.
-                    $("#outputInfo").html($("#stats_snippet_template").tmpl(data.data));
-                    //If the statistics request was successful and there are 1 or more articles relevant to our
-                    //selection, store the total number of articles so we know when to stop loading snippets
-                    //and start loading snippets.
-                    if ((data.status == 'success')&&(data.data.total_articles > 0)){
-                        _self.num_articles = data.data.total_articles;
-                        _self.loadCallback(refresh);
+                    if (data.total_articles > 1000){
+                        alert("This request returns more than 1000 articles. Try narrowing it down a bit.");
                     } else {
-                        //If the statistics request was unsuccessful or returned 0 articles, add a single blank row
-                        //to the table using a template.
-                        obj = $("#articles_admin_snippet_template").tmpl();
-                        $("#articles_admin_snippet tbody").html(obj);
-
-                        //Select the currently selected client in the blank row.
-                        if ($("#clientSelect").val() !== "")
-                            $(obj).find("select[name='client_id']").val($("#clientSelect").val());
+                        //Display the statistics using a template.
+                        $("#outputInfo").html($("#stats_snippet_template").tmpl(data.data));
+                        //If the statistics request was successful and there are 1 or more articles relevant to our
+                        //selection, store the total number of articles so we know when to stop loading snippets
+                        //and start loading snippets.
+                        if ((data.status == 'success')&&(data.data.total_articles > 0)){
+                            _self.num_articles = data.data.total_articles;
+                            _self.loadCallback(refresh);
+                        } else {
+                            //If the statistics request was unsuccessful or returned 0 articles, add a single blank row
+                            //to the table using a template.
+                            obj = $("#articles_admin_snippet_template").tmpl();
+                            $("#articles_admin_snippet tbody").html(obj);
+    
+                            //Select the currently selected client in the blank row.
+                            if ($("#clientSelect").val() !== "")
+                                $(obj).find("select[name='client_id']").val($("#clientSelect").val());
+                        }
                     }
                 },dObj);
             } else {
@@ -155,13 +158,9 @@ var articles = {
         
         //Whenever the user makes a new selection, reload/refresh the snippets.
         $(document).on("change","#fromMonth,#fromYear,#toMonth,#toYear,#clientSelect",function(){
-            if (parseInt($("#fromYear").val()) <= parseInt($("#toYear").val())){
-                if ($("#fromMonth").val() <= $("#toMonth").val()){
-                    $(".selectorOutput").html("");
-                    _self.loadSnippets(true);
-                } else {
-                    $(".selectorOutput").html("'From' must be less than or equal to 'To'");
-                }
+            if ((parseInt($("#fromYear").val()) < parseInt($("#toYear").val()))||(parseInt($("#fromYear").val()) == parseInt($("#toYear").val())&&($("#fromMonth").val() <= $("#toMonth").val()))){
+                $(".selectorOutput").html("");
+                _self.loadSnippets(true);
             } else {
                 $(".selectorOutput").html("'From' must be less than or equal to 'To'");
             }
@@ -198,6 +197,7 @@ var articles = {
             _self.orderBy = $(this).attr("rel");
 
             //Refresh the snippets.
+            console.log(_self);
             _self.loadSnippets(true);
         });
         //The user requests to delete an article.

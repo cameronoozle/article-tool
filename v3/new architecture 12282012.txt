@@ -1,0 +1,61 @@
+How should the API actually work?
+
+Let's make a quick sketch of just one interaction:
+
+Here's one problem with having an architecture like this - it's inefficient for executing operation on large batches of objects.
+For example, if I want to make updates to a bunch of articles, I would have to create a bunch of article objects and have them
+update themselves one by one, meaning there would be a separate query for each article, which would be super slow.
+
+I could have separate "batch" classes, such as ArticlesBatch, that can run methods like "save", which can create and update
+articles in a single query.
+
+For example, to copy a roadmap from one month to another, you say Roadmap::createFromRoadmap(Roadmap::get(month,client));
+
+The Roadmap class:
+save
+get
+create
+createFromRoadmap
+
+The Article Class:
+update
+get
+create
+
+The PermissionsBatch Class:
+save
+get
+
+The Permission Class:
+update
+get
+create
+
+The Client Class:
+updateSEOAmount
+get
+
+The Department Class:
+update
+get
+create
+saveClients
+
+The Module Class:
+update
+get
+create
+
+The User Class:
+update
+get
+create
+
+The Team Member Class:
+update
+get
+
+The Checklist Item Class:
+update
+get
+create

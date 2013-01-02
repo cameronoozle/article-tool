@@ -1,5 +1,6 @@
 <tr>
     <td class='article_id'><input type='text' readonly='true' name='article_id' value='<?= $data->article_id; ?>'/></td>
+    <td class='month'><?= date("F Y",strtotime($data->month));?></td>
     <td class='project'>
         <input type='hidden' name='asana_project_id' value='<?= $data->asana_project_id; ?>'/>
         <select name='project_id'><?= $this->project_options($data->project_id,4); ?></select></td>

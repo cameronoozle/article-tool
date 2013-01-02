@@ -44,6 +44,15 @@
 			    </div>
 			    <span class='th_heading'>Article ID</span>
 			</th>
+			<th class='month'>
+			    <div>
+				<span class="th_controls">
+				    <span class="sortMe" rel='month'></span>
+				    <span class="hideColumn"></span>
+				</span>
+			    </div>
+			    <span class='th_heading'>Month</span>
+			</th>
 			<th class='project'>
 			    <div>
 				<span class="th_controls">
