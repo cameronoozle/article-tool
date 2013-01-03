@@ -76,9 +76,11 @@ var articles = {
             //Serialize our object to make ready the request.
             qstr = jQuery.param(qobj);
             console.log(qstr);
+            var url = window.root+"/Content/articles_snippet?"+qstr;
+            console.log(url);
             _self.model.getSnippet(
                 //The URL:
-                window.root+"/Content/articles_snippet?"+qstr,
+                url,
                 //The Callback:
                 function(data){
                     if (refresh)
