@@ -228,7 +228,10 @@ pre[name='notes'] {
     -webkit-user-drag: none;
 }
 #articles_admin_snippet {
-	width:1215px;
+	width:1315px;
+}
+#articles_admin_snippet .due_date {
+    width:90px;
 }
 #articles_admin_snippet .month {
     width:40px;
@@ -526,7 +529,9 @@ label {
 	padding:5px;
 }
 /* End Permissions */
-
+#ui-datepicker-div {
+    font-size: 10px;
+}
 
 
 

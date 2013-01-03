@@ -2,7 +2,7 @@
 var articles = {
     Controller: function(){
         var _self = this;
-
+        
         $(".loaderHolder").hide();
         //Enable the HotKey for spreadsheet navigation.
         var spreadsheetNav = new SpreadsheetNav($("#articles_admin_snippet")[0]);
@@ -135,6 +135,10 @@ var articles = {
                         $("#articles_admin_snippet tbody").html("");
                     //Display the received snippet.
                     $("#articles_admin_snippet tbody").append(data);
+                    $("#articles_admin_snippet input[name='due_mirror']").each(function(){
+                        var altField = $(this).siblings("input[name='due_on']");
+                        $(this).datepicker({altField:altField,altFormat:"yy-mm-dd 00:00:00"});
+                    });
                     //This more or less increments the number of snippets we've received.
                     _self.snippets.push("string");
                     

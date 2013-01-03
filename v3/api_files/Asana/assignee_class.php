@@ -1,5 +1,5 @@
 <?php
-namespace Asana {
+namespace API\Asana {
 class Assignee extends AsanaObject {
     public $id, $name, $tasks;
     

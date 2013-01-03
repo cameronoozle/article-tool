@@ -201,7 +201,7 @@ namespace API\All {
             $as = new \Asana_API(Users::asana_api_key());
             
             //The user can update the assignee, notes, or name for the task. Data is the object we'll be sending to Asana.
-            $opt_params = array("assignee"=>\Types::Int,"notes"=>\Types::String,"name"=>\Types::String);
+            $opt_params = array("assignee"=>\Types::Int,"notes"=>\Types::String,"name"=>\Types::String,"due_on"=>\Types::Datetime);
             $data = array();
             foreach ($opt_params as $pname=>$pval){
                 if ((isset($this->parameters[$pname]))&&(\Types::matches_type($this->parameters[$pname],$pval))){

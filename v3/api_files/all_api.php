@@ -22,7 +22,13 @@ $arr = array(
     "All/system_class",
     "Content/articles_class",
     "SEO/checklists_class",
-    "SEO/keywords_class"
+    "SEO/keywords_class",
+    "Asana/asanaobject_class",
+    "Asana/asana_class",
+    "Asana/assignee_class",
+    "Asana/project_class",
+    "Asana/task_class",
+    "Asana/workspace_class"
 );
 foreach ($arr as $file){
     include($_SERVER['DOCUMENT_ROOT'].($_SERVER['DOCUMENT_ROOT'] == '/home/oozlemed/public_html' ? '/seo' : '/article-tool')."/v3/api_files/".$file.".php");

@@ -1,15 +1,15 @@
 <?php
-namespace Asana {
+namespace API\Asana {
 class Task extends AsanaObject {
-    public $id, $name, $assignee, $notes, $projects, $dueDate;
+    public $id, $name, $assignee, $notes, $projects, $dueDate, $errors;
     
     public static function get($id,$refresh = false){
-        $caller = AsanaObject::caller();
+/*        $caller = AsanaObject::caller();
         if ($caller['class'] !== 'Workspace')
-            throw new Exception("Only a Workspace object can create a new Task");
+            throw new \Exception("Only a Workspace object can create a new Task");*/
 
         //Request details from Asana.
-        $interface = new Asana_API(\API\All\Users::asana_api_key());
+        $interface = new \Asana_API(\API\All\Users::asana_api_key());
         $taskRequest = $interface->as_get("/tasks/".$id);
         $q = json_decode($taskRequest['contents']);
         
@@ -24,19 +24,19 @@ class Task extends AsanaObject {
             }
             return $task;
         } else {
-            throw new Exception("Asana Task Details request failed");
+            throw new \Exception("Asana Task Details request failed");
         }
     }
     
     public static function create($name,$workspaceID,$assignee = null,$notes = "",$dueDate = ""){
 
         //Default date for articles is the 25th day of the month - not handled here.
-        $caller = AsanaObject::caller();
+/*        $caller = AsanaObject::caller();
         if ($caller['class'] !== 'Workspace')
-            throw new Exception("Only a Workspace object can create a new Task");
+            throw new \Exception("Only a Workspace object can create a new Task");*/
         
         //Set up the Asana interface.
-        $interface = new Asana_API(\API\All\Users::asana_api_key());
+        $interface = new \Asana_API(\API\All\Users::asana_api_key());
 
         //Set up task specifications to send to Asana.
         $params = array("name"=>$name,"notes"=>$notes,"workspace"=>$workspaceID,"due_on"=>substr_replace($dueDate,"",-9,9));
@@ -58,7 +58,7 @@ class Task extends AsanaObject {
             }
             return $task;
         } else {
-            throw new Exception("Task Creation Request failed");
+            throw new \Exception("Task Creation Request failed");
         }
     }
     
@@ -78,7 +78,8 @@ class Task extends AsanaObject {
         $query = "INSERT INTO TASKS (asana_task_id,task,asana_team_member_id,notes,due_on) VALUES ".
         "(".$db->esc($this->id).",'".$db->esc($this->name)."',".
             (isset($this->assignee->id) ? $db->esc($this->assignee->id) : "null")
-        .",'".$db->esc($this->notes)."','".$db->esc($this->dueDate)."')";
+        .",'".$db->esc($this->notes)."','".$db->esc($this->dueDate)."') ON DUPLICATE KEY UPDATE ".
+        "task = VALUES (task), asana_team_member_id = VALUES (asana_team_member_id), notes = VALUES (notes), due_on = VALUES (due_on)";
         $db->query($query);
     }
 
@@ -123,7 +124,7 @@ class Task extends AsanaObject {
             $this->notes = $notes;
         }
         if ($dueDate !== "5dk49dkA0A94kdi"){
-            $params['due_on'] = $dueDate;
+            $params['due_on'] = substr($dueDate,0,10);
             $this->dueDate = $dueDate;
         }
 
@@ -132,8 +133,11 @@ class Task extends AsanaObject {
             $updateRequest = $interface->as_put("/tasks/".$this->id,array("data"=>$params));
             $q = json_decode($updateRequest['contents']);
             if (!isset($q->data)){
-                throw new Exception("Asana Task Update request failed.");
+                $this->errors = $q;
+                throw new \Exception("Asana Task Update request failed.");
             }
+            //Update the task in the database.
+            $this->refresh();
         }
         
         //Return self to allow chaining.

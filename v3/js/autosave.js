@@ -64,6 +64,7 @@ function Autosave(){
 				data:JSON.stringify(tosend),
 				contentType:'application/json',
 				success:function(data){
+					console.log(data);
 					if (data.status == "success"){
 						var rows = (data.data.rows ? data.data.rows : data.data);
 						for (i=0;i<rows.length;i++){
@@ -77,6 +78,7 @@ function Autosave(){
 					}
 				},
 				complete:function(a,b,c){
+					console.log(a,b);
 					$("#saveOutput").html("Autosave completed.");
 					$("#saveOutput").fadeIn(2000,function(){$("#saveOutput").fadeOut(2000)});
 				}

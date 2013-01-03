@@ -5,6 +5,8 @@ namespace API\Content {
         private $join_fields;
         private $workspace_id;
         private $dupkeys;
+        private $workspace;
+        private $tasks;
 
         //Reconcile_tasks marks all tasks that are complete in Asana as complete in the tool.
         public function reconcile_tasks() {
@@ -61,7 +63,16 @@ namespace API\Content {
             return $this->success(array("Tasks successfully reconciled!"));
         }
         
+        private function getMyWorkspace(){
+            if (!isset($this->workspace)){
+                $asana = new \API\Asana\Asana();
+                $this->workspace = $asana->getWorkspace($this->workspace_id);
+            }
+            return $this->workspace;
+        }
+        
         public function __construct($parameters){
+            $this->tasks = array();
             $this->workspace_id = "626921128718";
             parent::__construct($parameters);
         }
@@ -163,9 +174,22 @@ namespace API\Content {
             $d = $db->query($query1);
             //Get all of the fields inserted into the table.
             $d = $db->query("SELECT article_id FROM articles WHERE date_last_updated = (SELECT MAX(date_last_updated) FROM articles) LIMIT 1");
-            return $this->success(array("rows"=>$d['rows'],"query"=>$query1,"params"=>$this->parameters));
+            return $this->success(array("rows"=>$d['rows'],"query"=>$query1,"params"=>$this->parameters,"tasks"=>$this->tasks));
         }
         private function subquery($parameters){
+                //If we have an article ID and a due date, update the due date both in the database and Asana.
+                if ((isset($parameters['asana_task_id']))&&(is_numeric($parameters['asana_task_id']))&&(isset($parameters['due_on']))&&(\Types::matches_type($parameters['due_on'],\Types::Datetime))){
+                    $task = $this->getMyWorkspace()->getTask($parameters['asana_task_id']);
+                    array_push($this->tasks,$task);
+                    try {
+                        $task->update("428diemcwpqmd","639cfe8fmn5830","320d485ydk920887",$parameters['due_on']);                        
+                    } catch (\Exception $e) {
+                        array_push($this->tasks,$task->errors);
+                    }
+                } else {
+                    array_push($this->tasks,"This thing doesn't have an int task ID, or doesn't have a datetime due date.");
+                }
+                
                 //The arr is just an array of values to insert into the table straight up.
                 $arr = array();
                 $db = $this->get_db();

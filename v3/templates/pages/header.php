@@ -13,6 +13,7 @@
         <script type='text/javascript' src='<?= HTTP_ROOT; ?>/js/jquery_tmpl.js'></script>
         <script type='text/javascript' src='<?= HTTP_ROOT; ?>/js/jquery_forms.js'></script>
         <script type='text/javascript' src='<?= HTTP_ROOT; ?>/js/all.js'></script>
+        <script type='text/javascript' src='<?= HTTP_ROOT; ?>/jquery-ui/js/jquery-ui-1.9.1.custom.min.js'></script>
         <script type='text/html' id='assign_admin_template'>
             <?php include('templates/content/assign_admin_jq.php'); ?>
         </script>
@@ -30,5 +31,6 @@
             var oozleController = new oozle.Controller();
         </script>
         <link rel='stylesheet' href='<?= HTTP_ROOT; ?>/css/seo2.css' type='text/css'/>
+        <link rel='stylesheet' href='<?= HTTP_ROOT; ?>/jquery-ui/css/smoothness/jquery-ui-1.9.1.custom.min.css'/>
     </head>
     <body>

@@ -152,6 +152,15 @@
 			    </div>
 			    <span class='th_heading'>Notes</span>
 			</th>
+			<th class='due_date'>
+			    <div>
+				<span class="th_controls">
+				    <span class="sortMe" rel='due_on'></span>
+				    <span class="hideColumn"></span>
+				</span>
+			    </div>
+			    <span class='th_heading'>Due Date</span>
+			</th>
 			<th class='assign_td'>
 			    <div>
 				<span class="th_controls">

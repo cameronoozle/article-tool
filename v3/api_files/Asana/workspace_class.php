@@ -1,5 +1,5 @@
 <?php
-namespace Asana {
+namespace API\Asana {
 class Workspace extends AsanaObject {
     public $name,$id,$users,$projects;
     private $targ_proj_id, $tasks, $targ_task_id;
@@ -14,7 +14,7 @@ class Workspace extends AsanaObject {
         //We can't get a list of tasks for the workspace, because task searches must be limited by assignee in the
         //API, and a list of tasks for a single assignee doesn't really help us at all.        
         
-        //Get a list of users and assign it to $this->users;
+        //Get a list of users and assign it to $this->users.
         $userRequest = $interface->as_get("/workspaces/".$this->id."/users");
         $this->users = array_map(array($this,"assigneeMap"),json_decode($userRequest['contents'])->data);
         

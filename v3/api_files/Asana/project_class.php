@@ -1,5 +1,5 @@
 <?php
-namespace Asana {
+namespace API\Asana {
 class Project extends AsanaObject {
     public $id,$name,$tasks;
     

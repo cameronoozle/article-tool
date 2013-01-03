@@ -1,5 +1,5 @@
 <?php
-namespace Asana {
+namespace API\Asana {
     class Asana extends AsanaObject {
         private $workspaces,$target_id;
         public function __construct($refresh = false){
