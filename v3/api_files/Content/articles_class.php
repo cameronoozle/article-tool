@@ -325,45 +325,59 @@ namespace API\Content {
         public function assign_callback(){
             $db = $this->get_db();
             //Get all of the information about the article being assigned.
-            $d = $db->query("SELECT client,word_count,project,keyword,content_network,notes,target_url,post_url FROM articles ".
+            $d = $db->query("SELECT client,word_count,project,keyword,content_network,notes,target_url,post_url,month FROM articles ".
                             "LEFT JOIN clients USING (client_id) ".
                             "LEFT JOIN projects USING (project_id) ".
                             "LEFT JOIN keywords USING (keyword_id) ".
                             "LEFT JOIN content_networks USING (content_network_id) ".
                             "WHERE article_id = ".$db->esc($this->parameters['article_id'])." LIMIT 1");
+
             //If the article exists, assign it. Otherwise, return an error.
             if (count($d['rows']) > 0){
+
+                //Set up our due date. Articles are always due on the 25th day of the month to which they belong.
+                $ms = strtotime($d['rows'][0]['month']);
+                $dueDate = date("Y-m-d 00:00:00",mktime(0,0,0,date("m",$ms),25,date("Y",$ms)));
+
                 //Set up the notes for the task.
                 $notes = "Notes:\n";
                 foreach ($d['rows'][0] as $name=>$val){
                     $notes .= $name.": ".$val."\n";
                 }
+                
                 //Task Parameters: all of the information Asana needs to create task.
                 $tparams = array(
                     "asana_workspace_id"=>$this->workspace_id,
                     "notes"=>$notes,
                     "assignee"=>\API\All\Users::asana_team_member_id(),
-                    "name"=>$d['rows'][0]['client']." Content");
+                    "name"=>$d['rows'][0]['client']." Content",
+                    "due_on"=>$dueDate
+                );
+
                 //If the user submitted information that we weren't able to find in the database, add that to the notes section as well.
                 foreach (array("client","article_id","keyword","content_network","target_url","word_count","notes","post_url") as $val)
                     if (!empty($this->parameters[$val]))
                         $tparams["notes"] .= $val.": ".$this->parameters[$val]."\n";
                     else if ($val == "post_url")
                         $tparams["notes"] .= $val.": \n";
-                //For debugging purposes: dump the task parameters into the notes section for our perusal.
-                $tparams["notes"] .= print_r($tparams,true);
+                $tparams["notes"] .= "due: ".$dueDate;
+
                 //Assign the task.
                 $tasks = new \API\All\Tasks($tparams);
                 $data = $tasks->create();
+
                 //If the user gave us a project ID for the article being assigned, add that project to the task.
                 if (!empty($this->parameters['asana_project_id'])){
                     $d = $tasks->add_project($data->data->asana_task_id,$this->parameters['asana_project_id']);
                 }
+
                 //If the task assignment was a success, add the new task's ID and notes to the articles table.
                 if ($data->status == 'success')
                     $db->query("UPDATE articles SET task_id = ".$db->esc($data->data->task_id).", notes='".$db->esc($notes)."' WHERE article_id = ".$db->esc($this->parameters['article_id']));
+
                 //We're just going to return the task assignment API object that we retrieved in line 332, with a few modifications.
                 $data->params = $this->parameters;
+                $data->tparams = $tparams;
                 return $data;
             } else {
                 return $this->error(array("Article not found."));
@@ -424,7 +438,7 @@ namespace API\Content {
         public function assign_admin_callback(){
             $db = $this->get_db();
             $d = $db->query("SELECT asana_team_member_id FROM team_members WHERE team_member_id = ".$db->esc($this->parameters['team_member_id']));
-            $z = $db->query("SELECT article_id,client,word_count,project,keyword,content_network,notes,target_url,post_url FROM articles ".
+            $z = $db->query("SELECT article_id,client,word_count,project,keyword,content_network,notes,target_url,post_url,month FROM articles ".
                             "LEFT JOIN clients USING (client_id) ".
                             "LEFT JOIN projects USING (project_id) ".
                             "LEFT JOIN keywords USING (keyword_id) ".
@@ -432,16 +446,25 @@ namespace API\Content {
                             "WHERE article_id = ".$db->esc($this->parameters['article_id'])." LIMIT 1");
             if (count($d['rows']) > 0){
                 if (count($z['rows']) > 0){
+                    
+                    //Set up our due date. Articles are always due on the 25th day of the month to which they belong.
+                    $ms = strtotime($z['rows'][0]['month']);
+                    $dueDate = date("Y-m-d 00:00:00",mktime(0,0,0,date("m",$ms),25,date("Y",$ms)));
+
                     $tparams = array(
                         "asana_workspace_id"=>$this->workspace_id,
                         "notes"=>"",
                         "assignee"=>$d['rows'][0]['asana_team_member_id'],
-                        "name"=>$z['rows'][0]['client']." Content");
+                        "name"=>$z['rows'][0]['client']." Content",
+                        "due_on"=>$dueDate
+                        );
                     foreach (array("client","article_id","keyword","content_network","target_url","word_count","notes","post_url") as $val)
                         if (!empty($z['rows'][0][$val]))
                             $tparams["notes"] .= $val.": ".$z['rows'][0][$val]."\n";
                         else if ($val == "post_url")
                             $tparams["notes"] .= $val.": \n";
+                            
+                    $tparams["notes"] .= "due_on: ".$dueDate;
                     $tasks = new \API\All\Tasks($tparams);
                     $data = $tasks->create();
                     if (!empty($this->parameters['asana_project_id'])){

@@ -68,14 +68,17 @@ var articles = {
                 order_by:_self.orderBy,
                 order_dir:_self.orderDir
             };
+
             //If the user has selected a client, add that client to our parameters.
             if ($("#clientSelect").val() !== "")
                 qobj.client_id = $("#clientSelect").val()
+
             //Serialize our object to make ready the request.
             qstr = jQuery.param(qobj);
+            console.log(qstr);
             _self.model.getSnippet(
                 //The URL:
-                window.root+"/Content/articles_snippet"+qstr,
+                window.root+"/Content/articles_snippet?"+qstr,
                 //The Callback:
                 function(data){
                     if (refresh)

@@ -248,6 +248,7 @@ var articles = {
             //Execute the server request.
             _self.model.getData(window.root+"/api/Content/Articles/assign_admin",
                 function(data){
+                    console.log(data,window.root);
                     var td = $(el).closest("td");
                     //Hide the loading graphic.
                     $(".ajax_circle").hide();

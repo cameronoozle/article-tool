@@ -149,6 +149,9 @@ namespace API\All {
                 }
             }
             
+            if ((isset($this->parameters['due_on']))&&(\Types::matches_type($this->parameters['due_on'],\Types::Datetime)))
+                $data['due_on'] = substr($this->parameters['due_on'],0,10);
+            
             //Send the request to Asana to create the task.
             $a = $as->as_post("/workspaces/".$this->parameters['asana_workspace_id']."/tasks",json_encode(array("data"=>$data)));
             $q = json_decode($a['contents']);
@@ -158,8 +161,8 @@ namespace API\All {
                 $db = $this->get_db();
 
                 //Take the name, Asana ID, Asana team member ID, and workspace ID from the object we got back from our Asana request and put them in the database.
-                $inquery = "INSERT IGNORE INTO tasks (task,asana_task_id,asana_team_member_id,asana_workspace_id) ".
-                "VALUES ('".$db->esc($q->data->name)."','".$db->esc($q->data->id)."',".(!empty($q->data->assignee) ? "'".$q->data->assignee->id."'" : "null").",'".$db->esc($this->parameters['asana_workspace_id'])."')";
+                $inquery = "INSERT IGNORE INTO tasks (task,asana_task_id,asana_team_member_id,asana_workspace_id,due_on) ".
+                "VALUES ('".$db->esc($q->data->name)."','".$db->esc($q->data->id)."',".(!empty($q->data->assignee) ? "'".$q->data->assignee->id."'" : "null").",'".$db->esc($this->parameters['asana_workspace_id'])."','".$db->esc(date("Y-m-d H:i:s",strtotime($q->data->due_on)))."')";
                 $d = $db->query($inquery);
                 
                 //Retrieve the task details for the just-inserted task from the database and return them so the user can view the task they just created.
